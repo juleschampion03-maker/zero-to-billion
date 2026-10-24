@@ -1,0 +1,1975 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E5B3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Zero to Billion">
+<meta name="description" content="Pars de 0 $ et construis un empire jusqu'au milliard. Jeu idle tycoon gratuit.">
+<title>Zero to Billion</title>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* Layout: one portrait column — sticky money bar, goal card, illustrated street that fills in as the empire grows, big sell button, stacked business cards */
+:root{
+  --forest:#1E5B3A; --forest-deep:#123D27; --leaf:#4E9A5C; --cream:#FFF6E3; --cream-2:#F4E4BE; --paper:#FFFCF4;
+  --gold:#F5B82E; --gold-deep:#C98A0B; --coral:#FF6B4A; --sky:#BDE8F5; --ink:#173323; --muted:#5E7264;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito",-apple-system,system-ui,sans-serif;
+  color-scheme: light;
+}
+html{background:var(--forest)}
+body{background:var(--cream);color:var(--ink);font-family:var(--body);font-weight:700;font-size:15px;line-height:1.35;
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-height:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--forest)}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.inner{max-width:480px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums}
+
+/* Top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--forest);color:var(--cream);
+  padding-block:10px 14px;border-radius:0 0 26px 26px;box-shadow:0 5px 0 var(--forest-deep)}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-family:var(--display);letter-spacing:.06em;font-size:15px;color:var(--gold)}
+.brand span{color:var(--cream)}
+.menu-btn{background:var(--forest-deep);border:2px solid #2f7a52;border-radius:14px;padding:8px 14px;font-weight:900;color:var(--cream);font-size:14px}
+.money{font-family:var(--display);font-size:clamp(38px,12vw,52px);line-height:1.05;color:var(--gold);margin-top:4px;
+  text-shadow:0 3px 0 var(--forest-deep);transform-origin:left center}
+.money.bump{animation:bump .18s ease-out}
+.lvl{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:8px;width:100%;margin-top:6px;background:var(--forest-deep);
+  border:2px solid #2f7a52;border-radius:14px;padding:6px 10px;color:var(--cream);text-align:left}
+.lvl-n{font-family:var(--display);font-size:17px;color:var(--gold)}
+.lvl-t{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lvl-bar{height:9px;border-radius:99px;background:#0c2a1b;overflow:hidden;min-width:40px}
+.lvl-bar i{display:block;height:100%;width:0;background:var(--gold);border-radius:99px;transition:width .3s}
+.lvl.lvl-pop{animation:pop .5s ease-out}
+.stats{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:6px;font-size:14px}
+.chip{background:var(--gold);color:var(--ink);border-radius:999px;padding:3px 11px;font-weight:900;border:2px solid var(--forest-deep)}
+.total{color:#d7ead9}
+.total b{color:var(--cream)}
+
+main.wrap{padding-block:16px calc(40px + env(safe-area-inset-bottom,0px))}
+main .inner{display:grid;gap:14px}
+
+/* Cards */
+.card{background:var(--paper);border:3px solid var(--ink);border-radius:22px;box-shadow:0 4px 0 var(--ink);padding:14px}
+.goal-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:900}
+.goal-title{font-family:var(--display);font-size:22px;line-height:1.15;margin:4px 0 8px;text-wrap:balance}
+.bar{height:20px;border-radius:999px;background:var(--cream-2);border:3px solid var(--ink);overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:0;border-radius:999px;transition:width .25s ease-out;
+  background:repeating-linear-gradient(-45deg,var(--gold) 0 12px,#ffcc55 12px 24px);background-size:34px 34px;animation:stripes 1.2s linear infinite}
+.bar.small{height:14px;border-width:2px}
+.goal-foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.goal-foot b{color:var(--forest)}
+.coach{margin-top:10px;background:var(--cream);border:2px dashed var(--gold-deep);border-radius:14px;padding:8px 12px;font-size:14px;color:var(--ink)}
+
+/* Scene */
+.scene{position:relative;border:3px solid var(--ink);border-radius:22px;overflow:hidden;box-shadow:0 4px 0 var(--ink);background:var(--sky)}
+.scene svg{display:block;width:100%;height:auto}
+.cloud{animation:drift 38s linear infinite}
+.cloud.c2{animation-duration:55s;animation-delay:-20s}
+.person{animation:bob 1.6s ease-in-out infinite}
+.slot-built.pop{animation:popin .5s cubic-bezier(.3,1.6,.5,1)}
+.slot-built, .person{transform-box:fill-box;transform-origin:center bottom}
+.coin{position:absolute;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--gold);border:2px solid var(--ink);
+  font:900 12px/18px var(--body);text-align:center;color:var(--ink);animation:rise 1.3s ease-out forwards;pointer-events:none}
+.scene-tag{position:absolute;left:10px;top:8px;max-width:calc(100% - 64px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:900}
+
+/* Sell button */
+.sell{width:100%;min-height:96px;display:flex;align-items:center;gap:14px;text-align:left;background:var(--gold);border:3px solid var(--ink);
+  border-radius:26px;box-shadow:0 7px 0 var(--ink);padding:12px 18px;transition:transform .05s;position:relative}
+.sell:active,.sell.press{transform:translateY(5px);box-shadow:0 2px 0 var(--ink)}
+.sell .lemon{flex:none;width:62px;height:62px}
+.sell-txt{display:grid}
+.sell-lbl{font-family:var(--display);font-size:26px;line-height:1.05}
+.sell-sub{font-size:15px;font-weight:900;color:#5a3e00}
+.sell.hint::after{content:"";position:absolute;inset:-8px;border-radius:32px;border:3px solid var(--coral);animation:ring 1.2s ease-out infinite}
+
+/* Buy mode */
+.list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px}
+.list-head h2{font-family:var(--display);font-size:22px;margin:0}
+.seg{display:flex;background:var(--cream-2);border:2px solid var(--ink);border-radius:14px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;border-radius:10px;padding:6px 12px;font-weight:900;font-size:14px;min-width:46px}
+.seg button[aria-pressed="true"]{background:var(--forest);color:var(--cream)}
+
+/* Business cards */
+.biz{display:grid;gap:12px}
+.biz-head{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center}
+.biz-icon{width:58px;height:58px;border-radius:16px;background:var(--cream-2);border:2px solid var(--ink);display:grid;place-items:center}
+.biz-icon svg{width:50px;height:50px}
+.biz-title{min-width:0}
+.biz-title h3{font-family:var(--display);font-size:21px;margin:0;line-height:1.1}
+.biz-meta{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.biz-ips{font-weight:900;font-size:14px;color:var(--forest);background:#e2f1e0;border:2px solid var(--forest);border-radius:12px;padding:3px 8px;white-space:nowrap}
+.biz-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.buy{display:grid;gap:1px;text-align:left;border:3px solid var(--ink);border-radius:18px;padding:9px 11px;min-height:78px;align-content:center;
+  background:var(--cream-2);color:var(--muted);box-shadow:0 3px 0 rgba(23,51,35,.35);transition:transform .06s,background .2s}
+.buy .b-lbl{font-weight:900;font-size:14px;line-height:1.15}
+.buy .b-sub{font-size:12px}
+.buy .b-cost{font-family:var(--display);font-size:19px;margin-top:2px}
+.buy.can{color:var(--ink);box-shadow:0 4px 0 var(--ink)}
+.buy.emp.can{background:#bfe3b9}
+.buy.upg.can{background:var(--gold)}
+.buy.openb.can{background:var(--coral);color:var(--paper)}
+.buy.can:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.buy.can .b-cost{animation:glow 1.6s ease-in-out infinite}
+.buy.pop{animation:pop .3s ease-out}
+.buy.deny{animation:shake .3s}
+.name-input.deny{animation:shake .3s;border-color:var(--coral)}
+.team{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
+.mini{height:8px;background:var(--cream-2);border-radius:99px;overflow:hidden;border:1.5px solid var(--ink)}
+.mini i{display:block;height:100%;width:0;background:var(--forest);transition:width .25s}
+.biz.locked{border-style:dashed;box-shadow:none;background:var(--cream)}
+.biz.locked .biz-icon svg{filter:grayscale(1);opacity:.45}
+.lock-box{display:grid;gap:10px}
+.lock-txt{margin:0;font-size:14px}
+
+.mgr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:2px dashed var(--cream-2)}
+.mgr-txt{min-width:0;font-size:13px;color:var(--muted)}
+.mgr-txt b{display:block;color:var(--ink);font-size:14px}
+.buy.hire{min-height:0;padding:8px 12px;flex:none}
+.buy.hire .b-cost{font-size:16px}
+.buy.hire.can{background:#cfe0ff}
+.switch{flex:none;border:3px solid var(--ink);border-radius:999px;width:62px;height:34px;background:var(--cream-2);position:relative;padding:0}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--leaf)}
+.switch[aria-checked="true"]::after{left:29px}
+.biz.working .biz-icon{animation:pop .35s ease-out}
+.prestige{background:var(--forest);color:var(--cream);border-color:var(--forest-deep);box-shadow:0 4px 0 var(--forest-deep)}
+.prestige h2{font-family:var(--display);font-weight:400;font-size:22px;margin:2px 0 6px;color:var(--gold)}
+.prestige p{margin:0 0 10px;font-size:14px;color:#d7ead9}
+.prestige p b{color:var(--cream)}
+.prestige .bar{border-color:var(--forest-deep);background:var(--forest-deep)}
+.prestige .buy{width:100%;margin-top:12px;text-align:center}
+.prestige .buy.can{background:var(--gold)}
+.chip.shares{background:var(--cream);}
+.gem-ico{width:18px;height:18px;vertical-align:-3px;margin-right:3px}
+.chip.gems{background:#d9e9ff;cursor:pointer;border-color:var(--forest-deep)}
+.chip.turbo{background:var(--coral);color:var(--paper)}
+.gemshop h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0}
+.gem-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.gem-count{font-family:var(--display);font-size:24px;color:#2E6FD8;display:flex;align-items:center;gap:6px}
+.gem-count svg{width:26px;height:26px}
+.gem-top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.buy.video.can{background:#d9e9ff}
+.buy.turbo-b.can{background:var(--coral);color:var(--paper)}
+.gem-rows{display:grid;gap:8px;margin-top:12px}
+.gem-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--cream);border-radius:16px;padding:10px 12px}
+.gem-row .t{min-width:0}
+.gem-row b{display:block;font-size:15px}
+.gem-row span{font-size:12px;color:var(--muted)}
+.gem-row .buy{min-height:0;padding:8px 12px;text-align:center}
+.gem-row .buy.can{background:#d9e9ff}
+.gem-note{font-size:12px;color:var(--muted);margin:10px 0 0}
+.adbox{background:var(--ink);color:var(--cream);border-radius:18px;padding:22px 14px;margin-top:10px}
+.adbox .bar{margin-top:12px;border-color:var(--cream)}
+.shop{position:fixed;inset:0;z-index:48;background:var(--cream);overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));animation:sheet .25s ease-out}
+.shop-top{position:sticky;top:0;z-index:2;background:var(--forest);color:var(--cream);padding-block:12px 12px;box-shadow:0 4px 0 var(--forest-deep)}
+.shop-top .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.shop-top h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0;color:var(--gold)}
+.shop-bal{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--forest-deep);border-radius:14px;padding:4px;margin-top:10px}
+.tabs button{border:0;background:transparent;color:#cfe3d4;border-radius:10px;padding:9px 4px;font-weight:900;font-size:14px}
+.tabs button[aria-selected="true"]{background:var(--gold);color:var(--ink)}
+.shop-body{display:grid;gap:12px;padding-block:16px 0}
+.shop-sec h3{font-family:var(--display);font-weight:400;font-size:20px;margin:0 0 8px}
+.packs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pack{border:3px solid var(--ink);border-radius:20px;background:var(--paper);padding:12px;display:grid;gap:6px;justify-items:center;text-align:center;position:relative;box-shadow:0 4px 0 var(--ink)}
+.pack svg{width:46px;height:46px}
+.pack .amt{font-family:var(--display);font-size:22px}
+.pack .val{font-size:12px;color:var(--muted);min-height:16px}
+.pack .tag{position:absolute;top:-10px;right:-6px;background:var(--coral);color:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:1px 8px;font-size:12px;font-weight:900}
+.pack .buy{width:100%;min-height:0;padding:8px;text-align:center}
+.pack .buy.can{background:#d9e9ff}
+.pack.paid .buy{background:var(--cream-2)}
+.soon{display:inline-block;background:var(--ink);color:var(--cream);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:900}
+.free-list{display:grid;gap:8px}
+.free-list div{display:flex;justify-content:space-between;gap:10px;background:var(--paper);border:2px solid var(--cream-2);border-radius:14px;padding:10px 12px;font-size:14px}
+.free-list b{color:#2E6FD8;white-space:nowrap}
+.shop-open{width:100%;margin-top:12px;border:3px solid var(--ink);border-radius:18px;background:var(--gold);padding:13px;font-weight:900;font-size:16px;box-shadow:0 4px 0 var(--ink)}
+.shop-open:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.name-input{width:100%;box-sizing:border-box;margin-top:12px;border:3px solid var(--ink);border-radius:16px;padding:14px;font:900 18px var(--body);
+  text-align:center;background:var(--cream);color:var(--ink);-webkit-user-select:text;user-select:text}
+.name-input:focus{outline:3px solid var(--gold);outline-offset:2px}
+.board-card h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0}
+.board-card p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.board-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.rank-list{display:grid;gap:6px;margin-top:10px}
+.rank{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;background:var(--paper);border:2px solid var(--cream-2);border-radius:14px;padding:8px 10px}
+.rank.me{border-color:var(--gold);background:#fff4d1}
+.rank .pos{font-family:var(--display);font-size:18px;text-align:center;color:var(--forest)}
+.rank .who{min-width:0}
+.rank .who b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .who span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank.act{gap:8px}
+.rank.act .amt{font-size:13px}
+.rank .amt{font-weight:900;font-size:14px;white-space:nowrap}
+.rank.top1 .pos{color:var(--gold-deep)}
+.empty{background:var(--cream);border:2px dashed var(--cream-2);border-radius:16px;padding:14px;text-align:center;color:var(--muted);font-size:14px}
+.form{display:grid;gap:10px}
+.form label{font-size:13px;font-weight:900;color:var(--muted);display:grid;gap:4px;text-align:left}
+.form .name-input{margin-top:0;text-align:left;font-size:16px;padding:12px}
+.form-msg{font-size:14px;font-weight:900;margin:0;min-height:18px}
+.form-msg.err{color:#b8321a}
+.form-msg.ok{color:var(--forest)}
+.seg.wide{display:grid;grid-template-columns:1fr 1fr;margin-bottom:12px}
+.seg.wide button{padding:9px 6px}
+.code{font-family:var(--display);font-size:24px;letter-spacing:.06em;color:var(--forest);-webkit-user-select:text;user-select:text}
+.row-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.rank.act{grid-template-columns:34px 1fr auto auto}
+.mini-btn{border:2px solid var(--ink);border-radius:10px;background:var(--gold);padding:5px 9px;font-weight:900;font-size:12px;white-space:nowrap;box-shadow:0 2px 0 var(--ink)}
+.mini-btn:active{transform:translateY(2px);box-shadow:none}
+.mini-btn.ghost-b{background:var(--cream-2)}
+.mini-btn.done{background:transparent;border-color:var(--cream-2);box-shadow:none;color:var(--muted)}
+.req{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:var(--paper);border:2px solid var(--gold);border-radius:14px;padding:8px 10px}
+.req .who{min-width:0}
+.req .who b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.req .who span{font-size:12px;color:var(--muted)}
+.req-list{display:grid;gap:8px}
+.badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--coral);color:var(--paper);font:900 12px/1 var(--body);margin-left:6px;vertical-align:1px}
+.add-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.add-row .name-input{margin-top:6px}
+.add-row .small-btn{height:54px}
+.small-btn{border:3px solid var(--ink);border-radius:14px;background:var(--cream-2);padding:10px;font-weight:900;box-shadow:0 3px 0 var(--ink)}
+.small-btn.primary{background:var(--gold)}
+.small-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.small-btn[disabled]{opacity:.5}
+.foot{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ghost{border:3px solid var(--ink);border-radius:18px;background:var(--paper);padding:12px;font-weight:900;box-shadow:0 3px 0 var(--ink)}
+.ghost:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.save-line{font-size:12px;color:var(--muted);text-align:center;margin:0}
+
+/* Overlays */
+.float{position:fixed;z-index:58;pointer-events:none;font-family:var(--display);font-size:26px;color:var(--gold);
+  text-shadow:0 2px 0 var(--ink),2px 0 0 var(--ink),-2px 0 0 var(--ink),0 -2px 0 var(--ink);animation:floatup .9s ease-out forwards;white-space:nowrap}
+.float.small{font-size:18px;color:var(--paper)}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:57}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(18,61,39,.6);display:flex;align-items:flex-end;justify-content:center;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dialog{width:100%;max-width:440px;max-height:calc(100% - 20px);overflow:auto;background:var(--paper);border:3px solid var(--ink);border-radius:26px;
+  box-shadow:0 6px 0 var(--ink);padding:20px;animation:sheet .3s cubic-bezier(.3,1.4,.5,1);text-align:center}
+.dialog h2{font-family:var(--display);font-weight:400;font-size:28px;margin:4px 0 8px;line-height:1.1;text-wrap:balance}
+.dialog p{margin:6px 0;font-size:15px}
+.dialog .big{font-family:var(--display);font-size:34px;color:var(--gold-deep)}
+.dialog img{width:100%;border-radius:16px;border:2px solid var(--ink);margin-top:8px;-webkit-touch-callout:default;user-select:auto}
+.dialog .note{font-size:13px;color:var(--muted)}
+.actions{display:grid;gap:10px;margin-top:16px}
+.act{border:3px solid var(--ink);border-radius:18px;padding:14px;font-weight:900;font-size:16px;background:var(--cream-2);box-shadow:0 3px 0 var(--ink)}
+.act.primary{background:var(--gold)}
+.act.danger{background:var(--coral);color:var(--paper)}
+.act:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.medal{width:84px;height:84px;margin:0 auto}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;text-align:left}
+.stat-grid div{background:var(--cream);border-radius:14px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.stat-grid b{display:block;font-size:16px;color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--cream);
+  border-radius:16px;padding:10px 16px;font-weight:900;font-size:14px;max-width:calc(100% - 40px);text-align:center;animation:toast 2.6s ease forwards}
+
+@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:.8}100%{transform:translate(14px,-30px) scale(1.6);opacity:0}}
+.smoke{animation:smoke 2.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.smoke.s2{animation-delay:-1.2s}
+@keyframes bump{50%{transform:scale(1.06)}}
+@keyframes stripes{to{background-position:34px 0}}
+@keyframes drift{from{transform:translateX(-80px)}to{transform:translateX(420px)}}
+@keyframes bob{50%{transform:translateY(-2.5px)}}
+@keyframes popin{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes rise{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-6px) scale(1)}100%{transform:translateY(-70px) scale(.9);opacity:0}}
+@keyframes ring{0%{opacity:.9;transform:scale(.96)}100%{opacity:0;transform:scale(1.06)}}
+@keyframes glow{50%{color:var(--forest-deep)}}
+@keyframes pop{40%{transform:scale(1.07)}}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes floatup{0%{opacity:0;transform:translate(-50%,0) scale(.7)}15%{opacity:1;transform:translate(-50%,-10px) scale(1.1)}100%{opacity:0;transform:translate(-50%,-80px) scale(1)}}
+@keyframes sheet{from{transform:translateY(40px);opacity:0}}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,10px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}.cloud,.person,.bar i{animation:none!important}}
+</style>
+
+</head>
+<body>
+<!-- Shared drawings -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-lemon" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="54" rx="34" ry="28" fill="#FFE14D" stroke="#173323" stroke-width="5"/>
+      <path d="M16 54 q-6 -2 -8 0 q2 4 8 2 M84 54 q6 -2 8 0 q-2 4 -8 2" fill="#FFE14D" stroke="#173323" stroke-width="4"/>
+      <ellipse cx="40" cy="44" rx="10" ry="5" fill="#fff6c2"/>
+      <path d="M52 27 q10 -16 26 -12 q-6 14 -26 12z" fill="#4E9A5C" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <circle cx="40" cy="58" r="3.5" fill="#173323"/><circle cx="60" cy="58" r="3.5" fill="#173323"/>
+      <path d="M43 66 q7 6 14 0" fill="none" stroke="#173323" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-limo" viewBox="0 0 100 100">
+      <rect x="18" y="34" width="7" height="30" fill="#9A6634" stroke="#173323" stroke-width="3"/>
+      <rect x="75" y="34" width="7" height="30" fill="#9A6634" stroke="#173323" stroke-width="3"/>
+      <path d="M8 20 h84 l-5 18 h-74z" fill="#F5B82E"/>
+      <path d="M30 20 l-3 18 h10 l2 -18z M55 20 v18 h10 v-18z M80 20 l3 18 h-8 l-3 -18z" fill="#FFF6E3"/>
+      <path d="M8 20 h84 l-5 18 h-74z" fill="none" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="10" y="60" width="80" height="30" rx="5" fill="#FF6B4A" stroke="#173323" stroke-width="4"/>
+      <rect x="22" y="68" width="56" height="12" rx="6" fill="#FFF6E3" stroke="#173323" stroke-width="3"/>
+      <path d="M36 44 h16 l-2 16 h-12z" fill="#fff6c2" stroke="#173323" stroke-width="3"/>
+      <circle cx="64" cy="53" r="7" fill="#FFE14D" stroke="#173323" stroke-width="3"/>
+    </symbol>
+    <symbol id="i-truck" viewBox="0 0 100 100">
+      <rect x="6" y="30" width="64" height="46" rx="8" fill="#FF6B4A" stroke="#173323" stroke-width="4"/>
+      <path d="M70 44 h12 l12 15 v17 h-24z" fill="#FF6B4A" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M74 48 h7 l7 9 h-14z" fill="#BDE8F5" stroke="#173323" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="14" y="40" width="46" height="18" rx="3" fill="#FFF6E3" stroke="#173323" stroke-width="3"/>
+      <path d="M10 30 h56 l-4 9 h-48z" fill="#F5B82E" stroke="#173323" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="22" y="62" width="30" height="6" rx="3" fill="#F5B82E"/>
+      <circle cx="24" cy="80" r="10" fill="#173323"/><circle cx="24" cy="80" r="4" fill="#FFF6E3"/>
+      <circle cx="78" cy="80" r="10" fill="#173323"/><circle cx="78" cy="80" r="4" fill="#FFF6E3"/>
+    </symbol>
+    <symbol id="i-cafe" viewBox="0 0 100 100">
+      <rect x="12" y="28" width="76" height="62" rx="3" fill="#FFF6E3" stroke="#173323" stroke-width="4"/>
+      <path d="M6 28 h88 l-8 -14 h-72z" fill="#1E5B3A" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M10 40 h80 v10 h-80z" fill="#4E9A5C"/>
+      <path d="M20 40 h10 v10 h-10z M40 40 h10 v10 h-10z M60 40 h10 v10 h-10z M80 40 h10 v10 h-10z" fill="#FFF6E3"/>
+      <path d="M10 40 h80 v10 h-80z" fill="none" stroke="#173323" stroke-width="3"/>
+      <rect x="20" y="58" width="28" height="20" rx="2" fill="#BDE8F5" stroke="#173323" stroke-width="3"/>
+      <rect x="58" y="58" width="20" height="32" rx="2" fill="#9A6634" stroke="#173323" stroke-width="3"/>
+      <path d="M28 64 h12 v6 q0 5 -6 5 q-6 0 -6 -5z" fill="#FFF6E3" stroke="#173323" stroke-width="2"/>
+    </symbol>
+    <symbol id="i-resto" viewBox="0 0 100 100">
+      <rect x="10" y="32" width="80" height="58" fill="#F4E4BE" stroke="#173323" stroke-width="4"/>
+      <path d="M4 32 L50 8 L96 32z" fill="#FF6B4A" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="28" y="34" width="44" height="12" rx="4" fill="#F5B82E" stroke="#173323" stroke-width="3"/>
+      <rect x="17" y="52" width="18" height="18" fill="#BDE8F5" stroke="#173323" stroke-width="3"/>
+      <rect x="65" y="52" width="18" height="18" fill="#BDE8F5" stroke="#173323" stroke-width="3"/>
+      <path d="M41 90 v-26 q9 -9 18 0 v26z" fill="#9A6634" stroke="#173323" stroke-width="3"/>
+      <circle cx="50" cy="22" r="5" fill="#F5B82E" stroke="#173323" stroke-width="2.5"/>
+    </symbol>
+    <symbol id="i-immo" viewBox="0 0 100 100">
+      <rect x="14" y="30" width="30" height="62" fill="#2E86DE" stroke="#173323" stroke-width="4"/>
+      <rect x="46" y="8" width="40" height="84" fill="#FFF6E3" stroke="#173323" stroke-width="4"/>
+      <path d="M52 16h8v8h-8zM66 16h8v8h-8zM52 32h8v8h-8zM66 32h8v8h-8zM52 48h8v8h-8zM66 48h8v8h-8zM52 64h8v8h-8zM66 64h8v8h-8z" fill="#BDE8F5" stroke="#173323" stroke-width="2"/>
+      <path d="M20 38h6v6h-6zM32 38h6v6h-6zM20 52h6v6h-6zM32 52h6v6h-6zM20 66h6v6h-6zM32 66h6v6h-6z" fill="#FFE14D"/>
+      <rect x="58" y="78" width="16" height="14" fill="#9A6634" stroke="#173323" stroke-width="3"/>
+      <path d="M66 8 v-6" stroke="#173323" stroke-width="3"/><circle cx="66" cy="2" r="2.5" fill="#FF6B4A"/>
+    </symbol>
+    <symbol id="i-usine" viewBox="0 0 100 100">
+      <rect x="66" y="10" width="14" height="50" fill="#FF6B4A" stroke="#173323" stroke-width="4"/>
+      <path d="M8 92 V46 l20 -14 v14 l20 -14 v14 l20 -14 v14 h24 v46z" fill="#F5B82E" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M16 62h12v10h-12zM38 62h12v10h-12zM60 62h12v10h-12z" fill="#BDE8F5" stroke="#173323" stroke-width="3"/>
+      <rect x="78" y="70" width="10" height="22" fill="#9A6634" stroke="#173323" stroke-width="3"/>
+      <rect x="66" y="16" width="14" height="6" fill="#FFF6E3"/>
+    </symbol>
+    <symbol id="i-hotel" viewBox="0 0 100 100">
+      <rect x="18" y="14" width="64" height="80" fill="#7C5CE0" stroke="#173323" stroke-width="4"/>
+      <rect x="30" y="4" width="40" height="14" rx="3" fill="#F5B82E" stroke="#173323" stroke-width="3"/>
+      <text x="50" y="16" text-anchor="middle" font-family="Lilita One, Arial" font-size="12" fill="#173323">HÔTEL</text>
+      <path d="M26 24h10v9h-10zM45 24h10v9h-10zM64 24h10v9h-10zM26 40h10v9h-10zM45 40h10v9h-10zM64 40h10v9h-10zM26 56h10v9h-10zM64 56h10v9h-10z" fill="#FFE14D" stroke="#173323" stroke-width="2"/>
+      <path d="M40 94 v-22 h20 v22" fill="#BDE8F5" stroke="#173323" stroke-width="3"/>
+      <path d="M36 72 h28 l-3 -6 h-22z" fill="#FF6B4A" stroke="#173323" stroke-width="2.5" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-banque" viewBox="0 0 100 100">
+      <path d="M6 36 L50 8 L94 36z" fill="#F4E4BE" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <circle cx="50" cy="26" r="6" fill="#F5B82E" stroke="#173323" stroke-width="2.5"/>
+      <rect x="10" y="36" width="80" height="8" fill="#FFF6E3" stroke="#173323" stroke-width="3"/>
+      <path d="M18 46h9v36h-9zM36 46h9v36h-9zM55 46h9v36h-9zM73 46h9v36h-9z" fill="#FFF6E3" stroke="#173323" stroke-width="3"/>
+      <rect x="6" y="82" width="88" height="12" fill="#F4E4BE" stroke="#173323" stroke-width="4"/>
+    </symbol>
+    <symbol id="i-gem" viewBox="0 0 100 100">
+      <path d="M26 14 h48 l20 26 l-44 50 l-44 -50z" fill="#5BA8FF" stroke="#173323" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M6 40 h88 M26 14 l12 26 l12 -26 l12 26 l12 -26 M38 40 l12 50 l12 -50" fill="none" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M30 20 l8 16 h-20z" fill="#CFE6FF"/>
+    </symbol>
+    <symbol id="i-medal" viewBox="0 0 100 100">
+      <path d="M30 4 h16 l8 30 h-16z M54 4 h16 l-8 30 h-16z" fill="#FF6B4A" stroke="#173323" stroke-width="4" stroke-linejoin="round"/>
+      <circle cx="50" cy="62" r="32" fill="#F5B82E" stroke="#173323" stroke-width="5"/>
+      <circle cx="50" cy="62" r="22" fill="none" stroke="#C98A0B" stroke-width="4"/>
+      <text x="50" y="74" text-anchor="middle" font-family="Lilita One, Arial" font-size="32" fill="#173323">$</text>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top wrap">
+  <div class="inner">
+    <div class="top-row">
+      <div class="brand">ZERO <span>TO</span> BILLION</div>
+      <button class="menu-btn" id="menuBtn" type="button">Menu</button>
+    </div>
+    <div class="money num" id="money">0 $</div>
+    <button class="lvl" id="lvlBtn" type="button" aria-label="Niveau du joueur, ouvrir le classement"><span class="lvl-n num" id="lvlNum">Niv. 1</span><span class="lvl-t" id="lvlTitle">Débutant</span><span class="lvl-bar"><i id="lvlBar"></i></span></button>
+    <div class="stats">
+      <span class="chip num" id="ips">+0 $/s</span>
+      <span class="chip shares num" id="sharesChip" hidden></span>
+      <button class="chip gems num" id="gemsChip" type="button" aria-label="Diamants, ouvrir la boutique"><svg class="gem-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#i-gem"/></svg><span id="gemsTxt">0</span></button>
+      <span class="chip turbo num" id="turboChip" hidden></span>
+      <span class="total">Fortune totale : <b class="num" id="lifetime">0 $</b></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="inner">
+    <section class="card" aria-live="polite">
+      <div class="goal-top"><span class="eyebrow" id="goalStep">Objectif 1</span><span class="eyebrow" id="goalPct">0 %</span></div>
+      <h1 class="goal-title" id="goalTitle">Atteins 10 $</h1>
+      <div class="bar"><i id="goalBar"></i></div>
+      <div class="goal-foot"><span class="num" id="goalNums">0 $ / 10 $</span><span id="goalReward"></span></div>
+      <div class="coach" id="coach">Touche le gros bouton jaune pour vendre ta première limonade.</div>
+    </section>
+
+    <div class="scene" id="scene">
+      <span class="scene-tag" id="sceneTag">Ta rue</span>
+      <svg viewBox="0 0 360 170" role="img" aria-label="Ton empire : les commerces ouverts apparaissent dans la rue">
+        <defs>
+          <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9DEF0"/><stop offset="1" stop-color="#FFF6E3"/></linearGradient>
+        </defs>
+        <rect width="360" height="170" fill="url(#skyG)"/>
+        <circle cx="318" cy="32" r="17" fill="#F5B82E" stroke="#173323" stroke-width="3"/>
+        <g class="cloud"><ellipse cx="40" cy="30" rx="22" ry="9" fill="#fff"/><ellipse cx="56" cy="24" rx="14" ry="9" fill="#fff"/></g>
+        <g class="cloud c2"><ellipse cx="10" cy="52" rx="18" ry="7" fill="#fff"/><ellipse cx="22" cy="47" rx="11" ry="7" fill="#fff"/></g>
+        <!-- Background: real estate towers and the factory light up when opened -->
+        <g id="bg"></g>
+        <path d="M0 112 Q70 84 150 108 T360 100 V170 H0z" fill="#6DB36F"/>
+        <path d="M0 124 Q90 104 190 122 T360 118 V170 H0z" fill="#4E9A5C"/>
+        <rect x="0" y="140" width="360" height="30" fill="#3E4A43"/>
+        <path d="M6 156 H354" stroke="#FFF6E3" stroke-width="3" stroke-dasharray="14 12"/>
+        <g id="slots"></g>
+        <g id="people"></g>
+      </svg>
+    </div>
+
+    <button class="sell hint" id="sellBtn" type="button" aria-label="Vendre une limonade">
+      <svg class="lemon" viewBox="0 0 100 100" aria-hidden="true"><use href="#i-lemon"/></svg>
+      <span class="sell-txt"><span class="sell-lbl">Vendre une limonade</span><span class="sell-sub num" id="sellSub">+1 $ par vente</span></span>
+    </button>
+
+    <div class="list-head">
+      <h2>Tes commerces</h2>
+      <div class="seg" role="group" aria-label="Quantité à acheter">
+        <button type="button" data-mode="1" aria-pressed="true">×1</button>
+        <button type="button" data-mode="10" aria-pressed="false">×10</button>
+        <button type="button" data-mode="max" aria-pressed="false">MAX</button>
+      </div>
+    </div>
+    <div id="bizList" style="display:grid;gap:14px"></div>
+    <section class="card gemshop" id="gemShop">
+      <div class="gem-head"><h2>Boutique</h2><span class="gem-count num"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#i-gem"/></svg><span id="gemsBig">0</span></span></div>
+      <div class="gem-top">
+        <button class="buy video" id="videoBtn" type="button"><span class="b-lbl"></span><span class="b-sub"></span><span class="b-cost num"></span></button>
+        <button class="buy turbo-b" id="turboBtn" type="button"><span class="b-lbl"></span><span class="b-sub"></span><span class="b-cost num"></span></button>
+      </div>
+      <button class="shop-open" id="shopOpen" type="button">Ouvrir la boutique</button>
+    </section>
+    <section class="card board-card" id="boardCard" hidden>
+      <div class="gem-head"><h2>Classement entre amis</h2><span class="eyebrow" id="boardRank"></span></div>
+      <p id="boardIntro"></p>
+      <div class="rank-list" id="boardMini"></div>
+      <div class="board-actions" id="boardBtns"></div>
+    </section>
+    <section class="card prestige" id="prestigeCard" hidden>
+      <span class="eyebrow" style="color:#bcd8c3">Revendre ton empire</span>
+      <h2 id="prTitle">Parts d'investisseur</h2>
+      <p id="prText"></p>
+      <div class="bar small"><i id="prBar"></i></div>
+      <p id="prNext" style="margin:8px 0 0;font-size:13px"></p>
+      <button class="buy" id="prBtn" type="button"><span class="b-lbl">Revendre et repartir de 0 $</span><span class="b-cost num" id="prCost"></span></button>
+    </section>
+
+    <div class="foot">
+      <button class="ghost" id="shareBtn" type="button">Ma carte de réussite</button>
+      <button class="ghost" id="resetBtn" type="button">Recommencer</button>
+    </div>
+    <p class="save-line" id="saveLine"></p>
+  </div>
+</main>
+
+<div class="shop" id="shop" hidden role="dialog" aria-modal="true" aria-label="Boutique">
+  <div class="shop-top wrap"><div class="inner">
+    <div class="row"><h2>Boutique</h2><button class="menu-btn" id="shopClose" type="button">Fermer</button></div>
+    <div class="shop-bal">
+      <span class="chip num" id="shopMoney">0 $</span>
+      <span class="chip gems num"><svg class="gem-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#i-gem"/></svg><span id="shopGems">0</span></span>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="boost" aria-selected="true">Boosts</button>
+      <button type="button" role="tab" data-tab="gold" aria-selected="false">Pièces d'or</button>
+      <button type="button" role="tab" data-tab="gems" aria-selected="false">Diamants</button>
+    </div>
+  </div></div>
+  <div class="wrap"><div class="inner shop-body">
+    <section class="shop-sec" data-panel="boost">
+      <div class="card">
+        <h3>Turbo</h3>
+        <button class="buy turbo-b" id="turboBtn2" type="button" style="width:100%"><span class="b-lbl"></span><span class="b-sub"></span><span class="b-cost num"></span></button>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3>Améliorations permanentes</h3>
+        <div class="gem-rows" id="gemRows" style="margin-top:0"></div>
+        <p class="gem-note">Gardées pour toujours, même quand tu revends ton empire.</p>
+      </div>
+    </section>
+    <section class="shop-sec" data-panel="gold" hidden>
+      <div class="card">
+        <h3>Pièces d'or contre diamants</h3>
+        <p class="gem-note" style="margin:0 0 12px">Chaque coffre vaut des heures de tes revenus actuels : plus ton empire grandit, plus il rapporte.</p>
+        <div class="packs" id="chestList"></div>
+      </div>
+    </section>
+    <section class="shop-sec" data-panel="gems" hidden>
+      <div class="card">
+        <h3>Diamants gratuits</h3>
+        <button class="buy video" id="videoBtn2" type="button" style="width:100%"><span class="b-lbl"></span><span class="b-sub"></span><span class="b-cost num"></span></button>
+        <div class="free-list" style="margin-top:10px">
+          <div><span>Cadeau du jour</span><b id="dailyState"></b></div>
+          <div><span>Chaque nouveau palier</span><b>+5</b></div>
+          <div><span>Chaque revente d'empire</span><b>+5</b></div>
+        </div>
+      </div>
+      <div class="card" id="paidCard" style="margin-top:12px">
+        <h3>Packs de diamants <span class="soon">Bientôt</span></h3>
+        <p class="gem-note" style="margin:0 0 14px">Les achats seront activés avec le paiement de la plateforme. Pour l'instant, rien n'est facturé et ces boutons ne débitent rien.</p>
+        <div class="packs" id="packList"></div>
+      </div>
+    </section>
+  </div></div>
+</div>
+<div class="shop" id="board" hidden role="dialog" aria-modal="true" aria-label="Classement">
+  <div class="shop-top wrap"><div class="inner">
+    <div class="row"><h2>Classement</h2><button class="menu-btn" id="boardClose" type="button">Fermer</button></div>
+    <div class="shop-bal"><span class="chip num" id="boardMe">Niv. 1</span><span class="chip gems num" id="boardUser">Pas connecté</span></div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-btab="friends" aria-selected="true" id="friendsTab">Amis</button>
+      <button type="button" role="tab" data-btab="world" aria-selected="false">Monde</button>
+      <button type="button" role="tab" data-btab="account" aria-selected="false">Mon compte</button>
+    </div>
+  </div></div>
+  <div class="wrap"><div class="inner shop-body" id="boardBody"></div></div>
+</div>
+<canvas id="confetti"></canvas>
+<div class="modal" id="modal" hidden><div class="dialog" id="dialog" role="dialog" aria-modal="true"></div></div>
+
+<script id="core">
+/* ===== Game core: pure logic, no DOM (easy to extend: add a business to BUSINESSES and a goal to GOALS) ===== */
+/* Economy v4: tuned by simulation so a regular player (3 short visits a day) reaches the first billion around day 15. */
+const BUSINESSES = [
+  { id:'limo',  name:'Stand de limonade', tier:'Activité de rue', unlockAt:0, openCost:0,
+    emp:{ one:'vendeur', many:'vendeurs', verb:'Recruter un vendeur', base:10, growth:1.32, rate:0.25 },
+    upg:{ name:'Recette maison', base:30, growth:8 }, mgr:150 },
+  { id:'truck', name:'Food truck', tier:'Petit commerce', unlockAt:1000, openCost:750,
+    emp:{ one:'cuisinier', many:'cuisiniers', verb:'Recruter un cuisinier', base:200, growth:1.32, rate:1.0625 },
+    upg:{ name:'Menu signature', base:1500, growth:8 }, mgr:6000 },
+  { id:'cafe',  name:'Café du coin', tier:'Petit commerce', unlockAt:25000, openCost:15000,
+    emp:{ one:'barista', many:'baristas', verb:'Recruter un barista', base:13000, growth:1.32, rate:2.25 },
+    upg:{ name:'Machine pro', base:1e5, growth:8 }, mgr:2e5 },
+  { id:'resto', name:'Restaurant', tier:'Plusieurs entreprises', unlockAt:5e5, openCost:2.5e5,
+    emp:{ one:'chef', many:'chefs', verb:'Recruter un chef', base:2e5, growth:1.32, rate:7 },
+    upg:{ name:'Chef étoilé', base:1.5e6, growth:8 }, mgr:3e6 },
+  { id:'hotel', name:'Hôtel', tier:'Plusieurs entreprises', unlockAt:5e6, openCost:2.5e6,
+    emp:{ one:'réceptionniste', many:'réceptionnistes', verb:'Recruter un réceptionniste', base:1.8e6, growth:1.32, rate:16.25 },
+    upg:{ name:'Suite présidentielle', base:1.5e7, growth:8 }, mgr:3e7 },
+  { id:'immo',  name:'Immobilier', tier:'Grandes fortunes', unlockAt:3e7, openCost:1.5e7,
+    emp:{ one:'agent', many:'agents', verb:'Recruter un agent', base:3e7, growth:1.32, rate:90 },
+    upg:{ name:'Tours de luxe', base:2.5e8, growth:8 }, mgr:4e8 },
+  { id:'usine', name:'Industrie', tier:'Grandes fortunes', unlockAt:1.5e8, openCost:8e7,
+    emp:{ one:'ouvrier', many:'ouvriers', verb:'Recruter un ouvrier', base:1.2e8, growth:1.32, rate:220 },
+    upg:{ name:'Robots', base:1e9, growth:8 }, mgr:2e9 },
+  { id:'banque', name:'Banque', tier:'Empire', unlockAt:5e8, openCost:3e8,
+    emp:{ one:'trader', many:'traders', verb:'Recruter un trader', base:1.2e9, growth:1.32, rate:1375 },
+    upg:{ name:'Salle des marchés', base:1e10, growth:8 }, mgr:2e10 },
+];
+const GOALS = [
+  { at:10,    title:'Premiers dollars' },
+  { at:100,   title:'Ça tourne !' },
+  { at:1000,  title:'Premier millier', unlock:'truck' },
+  { at:1e4,   title:'Petit patron' },
+  { at:25000, title:'Commerçant reconnu', unlock:'cafe' },
+  { at:1e5,   title:'Six chiffres' },
+  { at:5e5,   title:'Entrepreneur', unlock:'resto' },
+  { at:1e6,   title:'Millionnaire' },
+  { at:5e6,   title:'Hôtelier', unlock:'hotel' },
+  { at:1e7,   title:'Multi-millionnaire' },
+  { at:3e7,   title:'Promoteur', unlock:'immo' },
+  { at:1e8,   title:'Magnat' },
+  { at:1.5e8, title:'Industriel', unlock:'usine' },
+  { at:3e8,   title:'Conglomérat' },
+  { at:5e8,   title:'Banquier', unlock:'banque' },
+  { at:7e8,   title:'Presque milliardaire' },
+  { at:1e9,   title:'Milliardaire' },
+];
+/* Player levels: reached with the fortune generated across all runs (kept when the empire is sold) */
+const LEVEL_BASE = 50, LEVEL_GROWTH = 1.6, LEVEL_GEMS = 2, LEVEL_GEMS_TITLE = 10;
+const TITLES = [[1,'Débutant'],[5,'Vendeur de rue'],[10,'Commerçant'],[15,'Patron'],[20,'Entrepreneur'],[25,'Investisseur'],[30,'Magnat'],[35,'Tycoon'],[40,'Titan'],[45,'Légende'],[50,'Empereur']];
+const OFFLINE_RATE = 0.3;
+const UPG_STEP = 0.5, TEAM_STEP = 25, TEAM_MULT = 1.5, BONUS_PER_GOAL = 0.05, OFFLINE_CAP = 4*3600, OFFLINE_STEP = 1*3600, SPEED_STEP = 0.10, TAP_IPS_SHARE = 0.02;
+/* Diamonds: rare second currency, kept through prestige. Earned from goals, daily gift, prestige and opt-in videos. */
+const GEM_SHOP = [
+  { id:'speed',   name:'Vitesse',          desc:'Tous tes revenus +10 %',            base:10, growth:1.6, max:Infinity },
+  { id:'tap',     name:'Ventes en or',     desc:'Ventes à la main ×2',               base:8,  growth:1.7, max:Infinity },
+  { id:'offline', name:'Absence prolongée',desc:'+1 h de gains quand tu es absent',  base:15, growth:2,   max:4 },
+];
+/* Gold chests: diamonds -> hours of current income (turbo excluded) */
+const GOLD_CHESTS = [
+  { id:'s', name:'Bourse',  hours:1,  gems:10, floor:500 },
+  { id:'m', name:'Coffre',  hours:4,  gems:30, floor:2000 },
+  { id:'l', name:'Trésor',  hours:12, gems:75, floor:6000 },
+];
+/* Real-money diamond packs: catalogue only. Purchases go through Platform.purchase(), which stays off until a payment provider is connected. */
+const PAID_PACKS = [
+  { id:'gems_50',   gems:50,   price:'0,99 €' },
+  { id:'gems_280',  gems:280,  price:'4,99 €',  tag:'+12 %' },
+  { id:'gems_600',  gems:600,  price:'9,99 €',  tag:'+20 %' },
+  { id:'gems_1500', gems:1500, price:'19,99 €', tag:'+50 %' },
+];
+const TURBO = { cost:5, seconds:15*60, mult:2 };
+const GEMS = { goal:5, daily:3, video:5, prestige:5, videoCooldown:4*60 };
+const SHARE_BONUS = 0.10, PRESTIGE_UNIT = 1e6, MGR_SPEND = 0.5;
+
+function bizById(id){ return BUSINESSES.find(b => b.id === id); }
+function newState(){
+  const biz = {};
+  const mgr = {};
+  for (const b of BUSINESSES){ biz[b.id] = { open: b.unlockAt === 0, emp: 0, lvl: 0 }; mgr[b.id] = { hired:false, on:true }; }
+  return { v:3, money:0, lifetime:0, allTime:0, taps:0, goalsDone:0, bestGoals:0, shares:0, prestiges:0, biz, mgr, gems:0, gemsEarned:0, gemUpg:{ speed:0, tap:0, offline:0 }, turboLeft:0, lastVideo:0, lastDaily:'', name:'', askedName:false, level:1, startedAt:Date.now(), lastSave:0 };
+}
+function num(x, d){ x = Number(x); return (isFinite(x) && x >= 0) ? x : (d || 0); }
+function hydrate(o){
+  const s = newState();
+  if (!o || typeof o !== 'object') return s;
+  s.money = num(o.money); s.lifetime = Math.max(num(o.lifetime), s.money);
+  s.taps = Math.floor(num(o.taps)); s.goalsDone = Math.min(GOALS.length, Math.floor(num(o.goalsDone)));
+  s.startedAt = num(o.startedAt) || Date.now(); s.lastSave = num(o.lastSave);
+  s.shares = Math.floor(num(o.shares)); s.prestiges = Math.floor(num(o.prestiges));
+  s.gems = Math.floor(num(o.gems)); s.gemsEarned = Math.max(s.gems, Math.floor(num(o.gemsEarned)));
+  for (const g of GEM_SHOP) s.gemUpg[g.id] = Math.min(g.max, Math.floor(num(o.gemUpg && o.gemUpg[g.id])));
+  s.turboLeft = Math.min(TURBO.seconds * 10, num(o.turboLeft)); s.lastVideo = num(o.lastVideo); s.lastDaily = typeof o.lastDaily === 'string' ? o.lastDaily : '';
+  s.name = cleanName(o.name); s.askedName = !!o.askedName || !!s.name;
+  s.level = Number.isFinite(Number(o.level)) && Number(o.level) >= 1 ? Math.min(Math.floor(o.level), levelOf(Math.max(num(o.allTime), num(o.lifetime)))) : levelOf(Math.max(num(o.allTime), num(o.lifetime)));
+  s.allTime = Math.max(num(o.allTime), s.lifetime); s.bestGoals = Math.max(s.goalsDone, Math.min(GOALS.length, Math.floor(num(o.bestGoals))));
+  if (!(num(o.v) >= 3)){   // goal list changed in v3: recount from the fortune actually earned
+    s.goalsDone = GOALS.filter(g => g.at <= s.lifetime).length;
+    s.bestGoals = Math.max(s.goalsDone, GOALS.filter(g => g.at <= s.allTime).length);
+  }
+  for (const b of BUSINESSES){
+    const ob = o.biz && o.biz[b.id];
+    if (ob && typeof ob === 'object'){
+      s.biz[b.id].open = b.unlockAt === 0 || !!ob.open;
+      s.biz[b.id].emp = Math.floor(num(ob.emp));
+      s.biz[b.id].lvl = Math.floor(num(ob.lvl));
+    }
+    const om = o.mgr && o.mgr[b.id];
+    if (om && typeof om === 'object'){ s.mgr[b.id].hired = !!om.hired && s.biz[b.id].open; s.mgr[b.id].on = om.on !== false; }
+  }
+  return s;
+}
+function baseMult(st){ return (1 + BONUS_PER_GOAL * st.goalsDone) * (1 + SHARE_BONUS * st.shares) * (1 + SPEED_STEP * st.gemUpg.speed); }
+function cleanName(x){ return typeof x === 'string' ? x.replace(/<[^>]*>/g, '').replace(/[<>&"`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16) : ''; }
+function globalMult(st){ return baseMult(st) * (st.turboLeft > 0 ? TURBO.mult : 1); }
+function upgMult(lvl){ return 1 + UPG_STEP * lvl; }
+function bizMult(st, b){ const s = st.biz[b.id]; return upgMult(s.lvl) * Math.pow(TEAM_MULT, Math.floor(s.emp / TEAM_STEP)); }
+function bizIps(st, b){ const s = st.biz[b.id]; if (!s.open) return 0; return s.emp * b.emp.rate * bizMult(st, b) * globalMult(st); }
+function totalIps(st){ let t = 0; for (const b of BUSINESSES) t += bizIps(st, b); return t; }
+function tapValue(st){ return (upgMult(st.biz.limo.lvl) * globalMult(st) + totalIps(st) * TAP_IPS_SHARE) * Math.pow(2, st.gemUpg.tap); }
+function geoCost(base, g, owned, n){ if (n <= 0) return 0; return base * Math.pow(g, owned) * (Math.pow(g, n) - 1) / (g - 1); }
+function maxAffordable(base, g, owned, money){
+  const c0 = base * Math.pow(g, owned);
+  if (money < c0) return 0;
+  let n = Math.floor(Math.log(money * (g - 1) / c0 + 1) / Math.log(g));
+  while (n > 0 && geoCost(base, g, owned, n) > money) n--;          // guard float rounding
+  while (geoCost(base, g, owned, n + 1) <= money) n++;
+  return n;
+}
+function buyQty(mode, base, g, owned, money){ return mode === 'max' ? Math.max(1, maxAffordable(base, g, owned, money)) : mode; }
+function earn(st, amt){ if (!(amt > 0) || !isFinite(amt)) return; st.money += amt; st.lifetime += amt; st.allTime += amt; }
+function tick(st, dt, f){
+  if (!(dt > 0)) return;
+  f = f === undefined ? 1 : f;
+  if (st.turboLeft > 0 && st.turboLeft < dt){ const a = st.turboLeft; earn(st, totalIps(st) * a * f); st.turboLeft = 0; earn(st, totalIps(st) * (dt - a) * f); return; }
+  earn(st, totalIps(st) * dt * f); if (st.turboLeft > 0) st.turboLeft = Math.max(0, st.turboLeft - dt);
+}
+function offlineCap(st){ return OFFLINE_CAP + OFFLINE_STEP * st.gemUpg.offline; }
+function addGems(st, n){ n = Math.floor(n); if (n > 0){ st.gems += n; st.gemsEarned += n; } return n; }
+function gemCost(st, id){ const g = GEM_SHOP.find(x => x.id === id); return Math.round(g.base * Math.pow(g.growth, st.gemUpg[id])); }
+function buyGem(st, id){
+  const g = GEM_SHOP.find(x => x.id === id); if (!g || st.gemUpg[id] >= g.max) return false;
+  const c = gemCost(st, id); if (st.gems < c) return false; st.gems -= c; st.gemUpg[id]++; return true;
+}
+function chestValue(st, id){ const c = GOLD_CHESTS.find(x => x.id === id); return Math.max(c.floor, totalIps(st) / (st.turboLeft > 0 ? TURBO.mult : 1) * 3600 * c.hours); }
+function buyChest(st, id){ const c = GOLD_CHESTS.find(x => x.id === id); if (!c || st.gems < c.gems) return 0; const v = chestValue(st, id); st.gems -= c.gems; earn(st, v); return v; }
+function grantPack(st, id){ const p = PAID_PACKS.find(x => x.id === id); if (!p) return 0; st.gems += p.gems; st.gemsEarned += p.gems; return p.gems; }
+function buyTurbo(st){ if (st.gems < TURBO.cost) return false; st.gems -= TURBO.cost; st.turboLeft += TURBO.seconds; return true; }
+function videoReady(st, now){ return now - st.lastVideo >= GEMS.videoCooldown * 1000; }
+function claimVideo(st, now){ if (!videoReady(st, now)) return 0; st.lastVideo = now; return addGems(st, GEMS.video); }
+function dayKey(d){ return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function claimDaily(st, d){ const k = dayKey(d); if (st.lastDaily === k) return 0; st.lastDaily = k; return addGems(st, GEMS.daily); }
+function doTapCore(st){ const v = tapValue(st); earn(st, v); st.taps++; return v; }
+function empCostFor(st, id, mode){ const b = bizById(id), s = st.biz[id]; const n = buyQty(mode, b.emp.base, b.emp.growth, s.emp, st.money); return { n, cost: geoCost(b.emp.base, b.emp.growth, s.emp, n) }; }
+function upgCostFor(st, id, mode){ const b = bizById(id), s = st.biz[id]; const n = buyQty(mode, b.upg.base, b.upg.growth, s.lvl, st.money); return { n, cost: geoCost(b.upg.base, b.upg.growth, s.lvl, n) }; }
+function spend(st, cost){ if (!(cost > 0) || cost > st.money) return false; st.money = Math.max(0, st.money - cost); return true; }
+function buyEmp(st, id, mode){ const s = st.biz[id]; if (!s || !s.open) return 0; const { n, cost } = empCostFor(st, id, mode); if (!spend(st, cost)) return 0; s.emp += n; return n; }
+function buyUpg(st, id, mode){ const s = st.biz[id]; if (!s || !s.open) return 0; const { n, cost } = upgCostFor(st, id, mode); if (!spend(st, cost)) return 0; s.lvl += n; return n; }
+function isUnlocked(st, b){ return st.lifetime >= b.unlockAt; }
+function openBiz(st, id){ const b = bizById(id), s = st.biz[id]; if (!b || s.open || !isUnlocked(st, b)) return false; if (b.openCost > 0 && !spend(st, b.openCost)) return false; s.open = true; return true; }
+function empGain(st, id, n){ const b = bizById(id), s = st.biz[id]; const before = bizIps(st, b); s.emp += n; const after = bizIps(st, b); s.emp -= n; return after - before; }
+function checkGoals(st){
+  const hit = [];
+  while (st.goalsDone < GOALS.length && st.lifetime >= GOALS[st.goalsDone].at){
+    const repeat = st.goalsDone < st.bestGoals;
+    if (!repeat) addGems(st, GEMS.goal);
+    hit.push({ goal: GOALS[st.goalsDone], repeat });
+    st.goalsDone++;
+  }
+  st.bestGoals = Math.max(st.bestGoals, st.goalsDone);
+  return hit;
+}
+/* Managers: buy the cheapest employee or upgrade of their business, spending at most MGR_SPEND of the cash */
+function hireMgr(st, id){ const b = bizById(id), m = st.mgr[id]; if (!b || m.hired || !st.biz[id].open) return false; if (!spend(st, b.mgr)) return false; m.hired = true; m.on = true; return true; }
+function toggleMgr(st, id){ const m = st.mgr[id]; if (!m || !m.hired) return false; m.on = !m.on; return true; }
+function mgrReserve(st){
+  const b = BUSINESSES.find(x => !st.biz[x.id].open);
+  return (b && isUnlocked(st, b)) ? b.openCost : 0;   // keep the price of the next unlocked business aside
+}
+function runManagers(st){
+  const done = {};
+  let budget = Math.max(0, st.money - mgrReserve(st)) * MGR_SPEND;
+  for (const b of BUSINESSES){
+    const m = st.mgr[b.id], s = st.biz[b.id];
+    if (!m.hired || !m.on || !s.open) continue;
+    for (let i = 0; i < 200; i++){
+      const e = empCostFor(st, b.id, 1), u = upgCostFor(st, b.id, 1);
+      const pickUpg = u.cost <= e.cost, cost = pickUpg ? u.cost : e.cost;
+      if (cost > budget || cost > st.money) break;
+      if (pickUpg) buyUpg(st, b.id, 1); else buyEmp(st, b.id, 1);
+      budget -= cost;
+      done[b.id] = (done[b.id] || 0) + 1;
+    }
+  }
+  return done;
+}
+/* Prestige: sell the empire for investor shares, +SHARE_BONUS each, forever */
+function sharesFor(lifetime){ return Math.floor(Math.sqrt(Math.max(0, lifetime) / PRESTIGE_UNIT)); }
+function nextShareAt(lifetime){ return Math.pow(sharesFor(lifetime) + 1, 2) * PRESTIGE_UNIT; }
+function prestige(st){
+  const gain = sharesFor(st.lifetime);
+  if (gain < 1) return null;
+  const n = newState();
+  n.shares = st.shares + gain; n.prestiges = st.prestiges + 1; n.allTime = st.allTime;
+  n.bestGoals = st.bestGoals; n.taps = st.taps; n.startedAt = st.startedAt;
+  n.gems = st.gems; n.gemsEarned = st.gemsEarned; n.gemUpg = Object.assign({}, st.gemUpg); n.lastVideo = st.lastVideo; n.lastDaily = st.lastDaily; n.name = st.name; n.askedName = st.askedName; n.level = st.level;
+  addGems(n, GEMS.prestige);
+  return { state: n, gain };
+}
+function offline(st, seconds){ const s = Math.min(Math.max(0, seconds), offlineCap(st)); const before = st.lifetime; tick(st, s, OFFLINE_RATE); return { gain: st.lifetime - before, seconds: s, capped: s >= offlineCap(st) }; }
+/* Levels */
+function levelNeed(level){ return level <= 1 ? 0 : LEVEL_BASE * Math.pow(LEVEL_GROWTH, level - 2); }
+function levelOf(allTime){
+  allTime = Math.max(0, Number(allTime) || 0);
+  if (allTime < LEVEL_BASE) return 1;
+  let L = Math.floor(Math.log(allTime / LEVEL_BASE) / Math.log(LEVEL_GROWTH)) + 2;
+  while (L > 1 && levelNeed(L) > allTime) L--;
+  while (levelNeed(L + 1) <= allTime) L++;
+  return L;
+}
+function titleOf(level){ let t = TITLES[0][1]; for (const [l, n] of TITLES) if (level >= l) t = n; return t; }
+function levelProgress(st){ const a = levelNeed(st.level), b = levelNeed(st.level + 1); return Math.min(1, Math.max(0, (st.allTime - a) / (b - a))); }
+function checkLevels(st){
+  const target = levelOf(st.allTime), ups = [];
+  while (st.level < target){
+    st.level++;
+    const title = TITLES.some(([l]) => l === st.level);
+    const g = addGems(st, title ? LEVEL_GEMS_TITLE : LEVEL_GEMS);
+    ups.push({ level: st.level, title: title ? titleOf(st.level) : null, gems: g });
+  }
+  return ups;
+}
+function totalEmp(st){ let t = 0; for (const b of BUSINESSES) t += st.biz[b.id].emp; return t; }
+function openCount(st){ return BUSINESSES.filter(b => st.biz[b.id].open).length; }
+function fmt(n){
+  n = isFinite(n) ? Math.max(0, n) : 0;
+  if (n < 10) return (Number.isInteger(n) ? String(n) : (Math.floor(n * 10) / 10).toFixed(1).replace('.', ',')) + ' $';
+  if (n < 1e6) return Math.floor(n).toLocaleString('fr-FR') + ' $';
+  const u = [[1e12,'Bn'],[1e9,'Md'],[1e6,'M']].find(x => n >= x[0]);
+  return (Math.floor(n / u[0] * 100) / 100).toFixed(2).replace('.', ',') + ' ' + u[1] + ' $';
+}
+function fmtRate(n){ n = isFinite(n) ? Math.max(0, n) : 0; if (n > 0 && n < 100 && !Number.isInteger(n)) return (Math.round(n * 10) / 10).toString().replace('.', ',') + ' $/s'; return fmt(n) + '/s'; }
+function fmtMult(x){ return x < 1000 ? (Math.round(x * 100) / 100).toString().replace('.', ',') : Math.round(x).toLocaleString('fr-FR'); }
+</script>
+
+<script>
+/* ===== UI ===== */
+/* Platform layer: CrazyGames SDK when present (real ads, cloud save), otherwise plain browser with simulated video */
+const Platform = {
+  sdk: null, env: 'browser', adPlaying: false,
+  async init(){
+    try {
+      const C = window.CrazyGames && window.CrazyGames.SDK;
+      if (C){ await C.init(); if (C.environment === 'crazygames' || C.environment === 'local'){ this.sdk = C; this.env = C.environment; } }
+    } catch(e){ this.sdk = null; }
+  },
+  get real(){ return !!this.sdk; },
+  store(){ return this.sdk ? this.sdk.data : window.localStorage; },
+  call(fn){ try { if (this.sdk) fn(this.sdk); } catch(e){} },
+  loadingStart(){ this.call(s => s.game.loadingStart()); },
+  loadingStop(){ this.call(s => s.game.loadingStop()); },
+  playing: null,
+  ready: false,
+  gameplay(on){ if (!this.ready) return; if (this.playing === on) return; this.playing = on; this.call(s => on ? s.game.gameplayStart() : s.game.gameplayStop()); },
+  happytime(){ this.call(s => s.game.happytime()); },
+  /* Real-money purchases: no provider connected yet, so always unavailable. Plug the platform's payment flow here. */
+  payments: false,
+  purchase(packId){ return Promise.resolve('unavailable'); },
+  /* resolves 'ok' | 'disabled' | 'none' */
+  ad(type){
+    return new Promise(res => {
+      if (!this.sdk){ res('disabled'); return; }
+      try {
+        this.sdk.ad.requestAd(type, {
+          adStarted: () => { this.adPlaying = true; },
+          adFinished: () => { this.adPlaying = false; res('ok'); },
+          adError: err => { this.adPlaying = false; res(err && err.code === 'adsDisabledBasicLaunch' ? 'disabled' : 'none'); },
+        });
+      } catch(e){ this.adPlaying = false; res('disabled'); }
+    });
+  },
+};
+(async function(){
+const $ = s => document.querySelector(s);
+await Platform.init();
+Platform.loadingStart();
+const KEY = 'ztb-save-v1';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SLOT = { limo:{x:4,w:82}, truck:{x:92,w:82}, cafe:{x:180,w:84}, resto:{x:270,w:86}, immo:{x:150,w:70,bg:true}, usine:{x:262,w:76,bg:true}, hotel:{x:4,w:62,bg:true}, banque:{x:70,w:58,bg:true} };
+
+let storeOK = false;
+try { const st = Platform.store(); st.setItem('ztb-test','1'); storeOK = st.getItem('ztb-test') === '1'; st.removeItem('ztb-test'); } catch(e){ storeOK = false; }
+function loadSave(){
+  if (!storeOK) return null;
+  try {
+    let raw = Platform.store().getItem(KEY);
+    if (!raw && Platform.real){ try { raw = window.localStorage.getItem(KEY); } catch(e){} }   // carry over an older local save
+    return raw ? hydrate(JSON.parse(raw)) : null;
+  } catch(e){ return null; }
+}
+function save(){ if (!storeOK) return false; try { S.lastSave = Date.now(); Platform.store().setItem(KEY, JSON.stringify(S)); return true; } catch(e){ return false; } }
+
+let S = loadSave();
+const fresh = !S;
+if (!S) S = newState();
+let mode = 1, dispMoney = S.money;
+
+/* ---------- Business cards ---------- */
+const cards = {};
+function buildCards(){
+  const list = $('#bizList'); list.innerHTML = '';
+  for (const b of BUSINESSES){
+    const el = document.createElement('article');
+    el.className = 'card biz';
+    el.innerHTML = `
+      <div class="biz-head">
+        <div class="biz-icon"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#i-${b.id}"/></svg></div>
+        <div class="biz-title"><h3>${b.name}</h3><p class="biz-meta"></p></div>
+        <div class="biz-ips num"></div>
+      </div>
+      <div class="open-box">
+        <div class="biz-actions">
+          <button class="buy emp" type="button" id="emp-${b.id}"><span class="b-lbl"></span><span class="b-sub num"></span><span class="b-cost num"></span></button>
+          <button class="buy upg" type="button" id="upg-${b.id}"><span class="b-lbl"></span><span class="b-sub num"></span><span class="b-cost num"></span></button>
+        </div>
+        <div class="team" style="margin-top:10px"><span class="team-txt num"></span><div class="mini"><i></i></div></div>
+        <div class="mgr">
+          <div class="mgr-txt"><b class="mgr-title">Gérant</b><span class="mgr-sub"></span></div>
+          <button class="buy hire" type="button" id="hire-${b.id}"><span class="b-lbl">Engager</span><span class="b-sub"></span><span class="b-cost num"></span></button>
+          <button class="switch" type="button" role="switch" id="sw-${b.id}" aria-label="Gérant actif" aria-checked="true" hidden></button>
+        </div>
+      </div>
+      <div class="lock-box">
+        <p class="lock-txt"></p>
+        <div class="bar small"><i></i></div>
+        <button class="buy openb" type="button" id="open-${b.id}"><span class="b-lbl">Ouvrir : ${b.name}</span><span class="b-cost num"></span></button>
+      </div>`;
+    list.appendChild(el);
+    const q = s => el.querySelector(s);
+    cards[b.id] = { el, meta:q('.biz-meta'), ips:q('.biz-ips'), openBox:q('.open-box'), lockBox:q('.lock-box'),
+      emp:q('.emp'), upg:q('.upg'), openB:q('.openb'), teamTxt:q('.team-txt'), teamBar:q('.mini i'), hire:q('.hire'), sw:q('.switch'), mgrSub:q('.mgr-sub'), lockTxt:q('.lock-txt'), lockBar:q('.lock-box .bar i') };
+    cards[b.id].emp.addEventListener('click', e => { const n = buyEmp(S, b.id, mode); afterBuy(e.currentTarget, n, n ? (n > 1 ? `+${n} ${b.emp.many}` : `+1 ${b.emp.one}`) : null); });
+    cards[b.id].upg.addEventListener('click', e => { const n = buyUpg(S, b.id, mode); afterBuy(e.currentTarget, n, n ? `Niveau ${S.biz[b.id].lvl}` : null); });
+    cards[b.id].hire.addEventListener('click', e => {
+      if (!hireMgr(S, b.id)){ deny(e.currentTarget); return; }
+      confetti(40); toast(`Gérant engagé : il achète pour ${b.name} à ta place.`); save(); updateUI(true);
+    });
+    cards[b.id].sw.addEventListener('click', () => { toggleMgr(S, b.id); save(); updateUI(true); });
+    cards[b.id].openB.addEventListener('click', e => {
+      if (!openBiz(S, b.id)){ deny(e.currentTarget); return; }
+      buildScene(b.id); confetti(70); toast(`${b.name} ouvert ! Recrute ton premier ${b.emp.one}.`);
+      save(); updateUI(true);
+    });
+  }
+}
+function afterBuy(btn, n, label){
+  if (!n){ deny(btn); return; }
+  btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+  const r = btn.getBoundingClientRect(); floatText(r.left + r.width/2, r.top, label, true);
+  save(); updateUI(true);
+}
+function deny(btn){ btn.classList.remove('deny'); void btn.offsetWidth; btn.classList.add('deny'); }
+function nextLockedId(){ const b = BUSINESSES.find(b => !S.biz[b.id].open); return b ? b.id : null; }
+
+function setBuy(btn, lbl, sub, cost, can){
+  btn.children[0].textContent = lbl; btn.children[1].textContent = sub; btn.children[2].textContent = cost;
+  btn.classList.toggle('can', can); btn.setAttribute('aria-disabled', String(!can));
+}
+
+/* ---------- Scene ---------- */
+function buildScene(popId){
+  const g = $('#slots'); let html = '';
+  for (const b of BUSINESSES){
+    const p = SLOT[b.id], s = S.biz[b.id];
+    if (p.bg) continue;
+    if (s.open){
+      html += `<use class="slot-built${b.id === popId ? ' pop' : ''}" href="#i-${b.id}" x="${p.x}" y="${140 - p.w}" width="${p.w}" height="${p.w}"/>`;
+    } else {
+      html += `<g opacity=".7"><rect x="${p.x + 8}" y="${140 - p.w + 22}" width="${p.w - 16}" height="${p.w - 26}" rx="8" fill="none" stroke="#FFF6E3" stroke-width="3" stroke-dasharray="7 6"/>
+        <rect x="${p.x + p.w/2 - 27}" y="${140 - 40}" width="54" height="16" rx="4" fill="#FFF6E3" stroke="#173323" stroke-width="2"/>
+        <text x="${p.x + p.w/2}" y="${140 - 28}" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="900" font-size="9" fill="#173323">À VENDRE</text></g>`;
+    }
+  }
+  g.innerHTML = html;
+  // background tier
+  let bg = '';
+  bg += S.biz.hotel.open ? `<use class="slot-built${popId === 'hotel' ? ' pop' : ''}" href="#i-hotel" x="4" y="16" width="62" height="62"/>`
+    : `<g fill="#123D27" opacity=".13"><rect x="16" y="22" width="40" height="80"/><rect x="26" y="14" width="20" height="10"/></g>`;
+  bg += S.biz.banque.open ? `<use class="slot-built${popId === 'banque' ? ' pop' : ''}" href="#i-banque" x="70" y="26" width="58" height="58"/>`
+    : `<g fill="#123D27" opacity=".13"><path d="M72 48 L99 32 L126 48z"/><rect x="76" y="48" width="46" height="50"/></g>`;
+  if (S.biz.immo.open){
+    bg += `<use class="slot-built${popId === 'immo' ? ' pop' : ''}" href="#i-immo" x="128" y="32" width="70" height="70"/><use href="#i-immo" x="188" y="22" width="80" height="80" class="slot-built${popId === 'immo' ? ' pop' : ''}"/>`;
+  } else {
+    bg += `<g fill="#123D27" opacity=".13"><rect x="140" y="40" width="24" height="70"/><rect x="168" y="26" width="30" height="84"/><rect x="202" y="46" width="22" height="64"/><rect x="228" y="34" width="26" height="76"/></g>`;
+  }
+  if (S.biz.usine.open){
+    bg += `<circle class="smoke" cx="${262 + 76*0.73}" cy="34" r="6" fill="#fff"/><circle class="smoke s2" cx="${262 + 76*0.73}" cy="34" r="6" fill="#fff"/>
+      <use class="slot-built${popId === 'usine' ? ' pop' : ''}" href="#i-usine" x="262" y="34" width="76" height="76"/>`;
+  } else {
+    bg += `<g fill="#123D27" opacity=".13"><rect x="300" y="52" width="10" height="40"/><path d="M262 110 V80 l18 -12 v12 l18 -12 v12 l18 -12 v12 h22 v30z"/></g>`;
+  }
+  $('#bg').innerHTML = bg;
+  buildPeople();
+}
+let shownPeople = -1;
+function buildPeople(){
+  const n = Math.min(totalEmp(S), 16);
+  if (n === shownPeople) return; shownPeople = n;
+  const cols = ['#FF6B4A','#F5B82E','#1E5B3A','#4E9A5C','#7C5CE0','#2E86DE'];
+  let html = '';
+  for (let i = 0; i < n; i++){
+    const x = 12 + i * 21.5, c = cols[i % cols.length];
+    html += `<g class="person" style="animation-delay:${-(i * 0.23).toFixed(2)}s"><rect x="${x - 5}" y="148" width="10" height="13" rx="5" fill="${c}" stroke="#173323" stroke-width="2"/><circle cx="${x}" cy="143" r="5" fill="#F7C9A0" stroke="#173323" stroke-width="2"/></g>`;
+  }
+  $('#people').innerHTML = html;
+}
+function spawnCoins(){
+  if (reduce || document.hidden) return;
+  const scene = $('#scene');
+  for (const b of BUSINESSES){
+    if (!S.biz[b.id].open || S.biz[b.id].emp === 0) continue;
+    const p = SLOT[b.id];
+    const c = document.createElement('div'); c.className = 'coin'; c.textContent = '$';
+    c.style.left = ((p.x + p.w/2 + (Math.random() * 20 - 10)) / 360 * 100) + '%';
+    c.style.top = p.bg ? '14%' : '34%';
+    scene.appendChild(c); setTimeout(() => c.remove(), 1350);
+  }
+}
+
+/* ---------- Effects ---------- */
+function floatText(x, y, text, small){
+  if (!text) return;
+  const f = document.createElement('div'); f.className = 'float' + (small ? ' small' : ''); f.textContent = text;
+  f.style.left = x + 'px'; f.style.top = (y - 10) + 'px';
+  if (small) f.style.color = '#1E5B3A';
+  document.body.appendChild(f); setTimeout(() => f.remove(), 950);
+}
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2700);
+}
+const cv = $('#confetti'), cx = cv.getContext('2d'); let parts = [], confRunning = false;
+function confetti(count){
+  if (reduce) return;
+  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio;
+  const cols = ['#F5B82E','#FF6B4A','#4E9A5C','#FFF6E3','#2E86DE','#FFE14D'];
+  for (let i = 0; i < count; i++) parts.push({ x: innerWidth/2 + (Math.random()-.5)*80, y: innerHeight*0.35, vx:(Math.random()-.5)*11, vy:-Math.random()*12-4,
+    r: 4 + Math.random()*5, c: cols[i % cols.length], a: Math.random()*6, va:(Math.random()-.5)*.4, life: 1 });
+  if (!confRunning){ confRunning = true; requestAnimationFrame(confStep); }
+}
+function confStep(){
+  const d = devicePixelRatio; cx.setTransform(d,0,0,d,0,0); cx.clearRect(0,0,innerWidth,innerHeight);
+  parts = parts.filter(p => p.y < innerHeight + 20 && p.life > 0);
+  for (const p of parts){ p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va; p.life -= .006;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.a); cx.fillStyle = p.c; cx.fillRect(-p.r, -p.r/2, p.r*2, p.r); cx.restore(); }
+  if (parts.length) requestAnimationFrame(confStep); else { confRunning = false; cx.clearRect(0,0,innerWidth,innerHeight); }
+}
+
+/* ---------- Modals ---------- */
+const modal = $('#modal'), dialog = $('#dialog'); const queue = []; let modalOpen = false;
+function showModal(o){ queue.push(o); if (!modalOpen) nextModal(); }
+function nextModal(){
+  const o = queue.shift();
+  if (!o){ modalOpen = false; modal.hidden = true; if ($('#shop').hidden && $('#board').hidden) Platform.gameplay(true); return; }
+  modalOpen = true; dialog.innerHTML = o.html; Platform.gameplay(false);
+  const acts = document.createElement('div'); acts.className = 'actions';
+  for (const a of o.actions){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'act ' + (a.kind || ''); b.textContent = a.label;
+    b.addEventListener('click', () => { const keep = a.fn && a.fn(); if (keep !== true) nextModal(); });
+    acts.appendChild(b);
+  }
+  dialog.appendChild(acts); modal.hidden = false;
+  if (o.onShow) o.onShow();
+  setTimeout(() => { const f = dialog.querySelector('.act'); f && f.focus({preventScroll:true}); }, 50);
+}
+function closeAll(){ queue.length = 0; nextModal(); }
+
+function onLevels(ups){
+  const last = ups[ups.length - 1], gems = ups.reduce((a, u) => a + u.gems, 0), titled = ups.filter(u => u.title).pop();
+  const b = $('#lvlBtn'); b.classList.remove('lvl-pop'); void b.offsetWidth; b.classList.add('lvl-pop');
+  if (titled){ toast(`Niveau ${last.level} : tu deviens ${titled.title} ! +${gemLabel(gems)}`); confetti(90); }
+  else toast(`Niveau ${last.level} ! +${gemLabel(gems)}`);
+  save(); updateUI(true);
+  if (window.Cloud) Cloud.pushSoon();
+}
+function who(){ return S.name || ''; }
+function withName(a, b){ return S.name ? a.replace('{n}', S.name) : b; }
+function askName(first){
+  showModal({ html: `<svg class="lemon" viewBox="0 0 100 100" style="width:76px;height:76px;margin:0 auto;display:block" aria-hidden="true"><use href="#i-lemon"/></svg>
+      <p class="eyebrow">${first ? 'Bienvenue' : 'Ton prénom'}</p>
+      <h2>${first ? 'Comment tu t\'appelles ?' : 'Changer de prénom'}</h2>
+      <p>Il donne son nom à ton empire et s'affiche sur ta carte de réussite.</p>
+      <input class="name-input" id="nameInput" type="text" maxlength="16" autocomplete="given-name" autocapitalize="words" enterkeyhint="done" placeholder="Prénom ou pseudo" aria-label="Prénom ou pseudo" value="${S.name}">
+      <p class="note">Prénom ou pseudo, 16 caractères max. Il reste dans ta sauvegarde.</p>`,
+    actions: [{ label: first ? "C'est parti !" : 'Enregistrer', kind:'primary', fn: () => {
+        const inp = $('#nameInput'), v = cleanName(inp ? inp.value : '');
+        if (!v){ if (inp){ inp.classList.remove('deny'); void inp.offsetWidth; inp.classList.add('deny'); inp.focus(); } return true; }
+        S.name = v; S.askedName = true; save(); updateUI(true);
+        toast(first ? `Bienvenue ${v} ! Vends ta première limonade.` : `C'est noté, ${v}.`);
+      } },
+      { label: first ? 'Plus tard' : 'Annuler', fn: () => { if (first){ S.askedName = true; save(); } } }],
+    onShow: () => {
+      const inp = $('#nameInput'); if (!inp) return;
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); dialog.querySelector('.act.primary').click(); } });
+      setTimeout(() => inp.focus(), 150);
+    } });
+}
+function onGoal(h){
+  if (h.repeat){ toast(`Palier ${h.goal.title} : +${Math.round(BONUS_PER_GOAL * 100)} % de revenus`); return; }
+  goalModal(h.goal);
+}
+function goalModal(g){
+  const pct = Math.round(BONUS_PER_GOAL * 100 * S.goalsDone);
+  const unlock = g.unlock ? `<p><b>Débloqué :</b> ${bizById(g.unlock).name}. Ouvre-le dans la liste de tes commerces.</p>` : '';
+  const final = g.at >= 1e9;
+  showModal({ html: `<svg class="medal" viewBox="0 0 100 100" aria-hidden="true"><use href="#i-medal"/></svg>
+      <p class="eyebrow">${final ? 'Objectif final atteint' : withName('Bravo {n} !', 'Palier atteint')}</p>
+      <h2>${final ? 'Tu as atteint le milliard !' : g.title}</h2>
+      <p class="big num">${fmt(g.at)}</p>
+      <p>de fortune totale générée.</p>${unlock}
+      <p>Bonus permanent : <b>+${Math.round(BONUS_PER_GOAL * 100)} %</b> sur tous tes revenus (total <b>+${pct} %</b>).</p>
+      <p><svg class="gem-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#i-gem"/></svg><b>+${GEMS.goal} diamants</b></p>`,
+    actions: [{ label:'Continuer', kind:'primary' }, { label:'Créer ma carte de réussite', fn: () => { openShare(); return true; } }],
+    onShow: () => { confetti(final ? 220 : 120); if (final) Platform.happytime(); } });
+}
+
+function openMenu(){
+  showModal({ html: `<h2>${withName("L'empire de {n}", 'Ton empire')}</h2>
+    <div class="stat-grid">
+      <div>Niveau<b class="num">${S.level} · ${titleOf(S.level)}</b></div>
+      <div>Prochain niveau<b class="num">${fmt(levelNeed(S.level + 1))}</b></div>
+      <div>Argent disponible<b class="num">${fmt(S.money)}</b></div>
+      <div>Fortune totale<b class="num">${fmt(S.lifetime)}</b></div>
+      <div>Revenus<b class="num">${fmtRate(totalIps(S))}</b></div>
+      <div>Bonus de paliers<b class="num">+${Math.round(BONUS_PER_GOAL*100*S.goalsDone)} %</b></div>
+      <div>Employés<b class="num">${totalEmp(S)}</b></div>
+      <div>Ventes à la main<b class="num">${S.taps.toLocaleString('fr-FR')}</b></div>
+      <div>Parts d'investisseur<b class="num">${S.shares} (+${Math.round(S.shares * SHARE_BONUS * 100)} %)</b></div>
+      <div>Fortune cumulée<b class="num">${fmt(S.allTime)}</b></div>
+    </div>
+    <p class="note" style="margin-top:12px">${saveText()}</p>`,
+    actions: [{ label:'Boutique', kind:'primary', fn: () => { openShop('boost'); } },
+              ...(Cloud.available() ? [{ label: Cloud.on ? 'Classement' : 'Classement et compte', fn: () => { openBoard(); } }] : []),
+              { label: S.name ? 'Changer de prénom' : 'Ajouter mon prénom', fn: () => { queue.length = 0; modalOpen = false; askName(false); return true; } },
+              { label:'Créer ma carte de réussite', fn: () => { openShare(); return true; } },
+              { label:'Recommencer', kind:'danger', fn: () => { confirmReset(); return true; } },
+              { label:'Fermer' }] });
+}
+function confirmReset(){
+  queue.length = 0;
+  modalOpen = false;
+  showModal({ html: `<h2>Tout recommencer ?</h2><p>Tout est effacé, y compris tes parts d'investisseur et tes diamants. Pour garder un bonus, utilise plutôt « Revendre ton empire ». Cette action est définitive.</p>`,
+    actions: [{ label:'Annuler', kind:'primary' },
+              { label:'Oui, recommencer à 0 $', kind:'danger', fn: () => {
+                  const keepName = S.name; S = newState(); S.name = keepName; S.askedName = true; dispMoney = 0; shownPeople = -1; save(); buildScene(); updateUI(true); toast('Nouvelle partie : à toi de jouer !');
+              } }] });
+}
+
+/* ---------- Share card ---------- */
+function rr(x, X, Y, W, H, R){ x.beginPath(); x.moveTo(X+R,Y); x.arcTo(X+W,Y,X+W,Y+H,R); x.arcTo(X+W,Y+H,X,Y+H,R); x.arcTo(X,Y+H,X,Y,R); x.arcTo(X,Y,X+W,Y,R); x.closePath(); }
+function fitFont(x, text, family, max, width){ let s = max; do { x.font = `${s}px ${family}`; s -= 4; } while (x.measureText(text).width > width && s > 20); }
+async function makeCard(){
+  try { await Promise.all([document.fonts.load('100px "Lilita One"'), document.fonts.load('900 40px Nunito'), document.fonts.load('800 40px Nunito')]); } catch(e){}
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d');
+  const D = '"Lilita One", "Arial Rounded MT Bold", sans-serif', B = 'Nunito, -apple-system, sans-serif';
+  x.fillStyle = '#1E5B3A'; x.fillRect(0, 0, 1080, 1350);
+  x.fillStyle = 'rgba(245,184,46,.12)';
+  for (let i = 0; i < 14; i++) for (let j = 0; j < 18; j++) if ((i + j) % 2 === 0){ x.beginPath(); x.arc(40 + i*80, 40 + j*80, 9, 0, 7); x.fill(); }
+  x.textAlign = 'center';
+  x.fillStyle = '#123D27'; x.font = `112px ${D}`; x.fillText('ZERO TO BILLION', 540, 196);
+  x.fillStyle = '#F5B82E'; x.fillText('ZERO TO BILLION', 540, 188);
+  x.fillStyle = '#FFF6E3'; x.font = `800 36px ${B}`; x.fillText(S.name ? `L'empire de ${S.name}` : 'Ma carte de réussite', 540, 248);
+  x.fillStyle = '#173323'; rr(x, 80, 300, 920, 860, 56); x.fill();
+  x.fillStyle = '#FFFCF4'; rr(x, 80, 288, 920, 860, 56); x.fill();
+  x.lineWidth = 8; x.strokeStyle = '#173323'; x.stroke();
+  // coin
+  x.beginPath(); x.arc(540, 408, 70, 0, 7); x.fillStyle = '#F5B82E'; x.fill(); x.lineWidth = 8; x.stroke();
+  x.beginPath(); x.arc(540, 408, 48, 0, 7); x.strokeStyle = '#C98A0B'; x.lineWidth = 7; x.stroke();
+  x.fillStyle = '#173323'; x.font = `78px ${D}`; x.fillText('$', 540, 436);
+  x.fillStyle = '#5E7264'; x.font = `900 32px ${B}`; x.fillText(S.prestiges ? 'FORTUNE CUMULÉE GÉNÉRÉE' : 'FORTUNE TOTALE GÉNÉRÉE', 540, 540);
+  const big = fmt(S.allTime); fitFont(x, big, D, 150, 820); x.fillStyle = '#1E5B3A'; x.fillText(big, 540, 680);
+  const g = S.goalsDone > 0 ? GOALS[S.goalsDone - 1].title : 'Premiers pas';
+  x.fillStyle = '#F5B82E'; rr(x, 300, 716, 480, 70, 35); x.fill(); x.strokeStyle = '#173323'; x.lineWidth = 5; x.stroke();
+  x.fillStyle = '#173323'; x.font = `900 34px ${B}`; x.fillText(g, 540, 763);
+  const rows = [['Niveau', `${S.level} · ${titleOf(S.level)}`], ['Revenus', fmtRate(totalIps(S))], ['Commerces ouverts', `${openCount(S)} / ${BUSINESSES.length}`], ['Employés', String(totalEmp(S))], ['Paliers franchis', `${S.goalsDone} / ${GOALS.length}`], ['Parts d\'investisseur', `${S.shares} (+${Math.round(S.shares * SHARE_BONUS * 100)} %)`]];
+  rows.forEach((r, i) => {
+    const y = 840 + i * 52; x.textAlign = 'left'; x.fillStyle = '#5E7264'; x.font = `800 34px ${B}`; x.fillText(r[0], 150, y);
+    x.textAlign = 'right'; x.fillStyle = '#173323'; x.font = `900 36px ${B}`; x.fillText(r[1], 930, y);
+  });
+  x.textAlign = 'center'; x.fillStyle = '#FFF6E3'; x.font = `800 34px ${B}`;
+  x.fillText('Objectif : 1 milliard de dollars. Qui fait mieux ?', 540, 1232);
+  x.fillStyle = '#bcd8c3'; x.font = `800 28px ${B}`;
+  x.fillText(new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }), 540, 1290);
+  return c.toDataURL('image/png');
+}
+function shareText(){ return `${S.name ? S.name + ' est' : 'Je suis'} niveau ${S.level} (${titleOf(S.level)}) avec ${fmt(S.allTime)} sur ZERO TO BILLION : ${fmtRate(totalIps(S))}, ${openCount(S)} commerce${openCount(S) > 1 ? 's' : ''}, ${totalEmp(S)} employés. Objectif : 1 milliard. Qui fait mieux ?`; }
+function openShare(){
+  queue.length = 0; modalOpen = false;
+  showModal({ html: `<h2>Ta carte de réussite</h2><p class="note" id="cardNote">Création de ta carte…</p><img id="cardImg" alt="Carte de réussite ZERO TO BILLION" hidden>`,
+    actions: [{ label:'Copier mon score (texte)', kind:'primary', fn: () => { copyScore(); return true; } }, { label:'Fermer' }],
+    onShow: () => {
+      makeCard().then(url => {
+        const img = $('#cardImg'), note = $('#cardNote'); if (!img) return;
+        img.src = url; img.hidden = false;
+        note.textContent = "Pour l'envoyer : fais une capture d'écran, ou un appui long sur l'image (l'option Enregistrer dépend de l'app).";
+      }).catch(() => { const n = $('#cardNote'); if (n) n.textContent = "L'image n'a pas pu être créée ici. Utilise « Copier mon score » ou une capture d'écran."; });
+    } });
+}
+function copyScore(){
+  const t = shareText();
+  try {
+    navigator.clipboard.writeText(t).then(() => toast('Score copié : colle-le dans un message.'), () => fallbackCopy(t));
+  } catch(e){ fallbackCopy(t); }
+}
+function fallbackCopy(t){
+  const note = $('#cardNote');
+  if (note){ note.style.userSelect = 'text'; note.style.webkitUserSelect = 'text'; note.textContent = t; }
+  toast('Copie automatique bloquée : sélectionne le texte affiché.');
+}
+
+/* ---------- UI update ---------- */
+function saveText(){ return storeOK ? (Platform.real ? 'Sauvegarde automatique liée à ton compte CrazyGames.' : 'Sauvegarde automatique sur cet appareil, dans ce navigateur.') : "Sauvegarde indisponible ici : ta partie sera perdue si tu fermes la page."; }
+function coachText(){
+  const l = S.biz.limo;
+  if (S.taps === 0 && S.lifetime === 0) return withName('À toi de jouer {n} : touche le gros bouton jaune pour vendre ta première limonade.', 'Touche le gros bouton jaune pour vendre ta première limonade.');
+  if (l.emp === 0 && S.money < 10) return `Encore ${fmt(10 - S.money)} pour recruter ton premier vendeur.`;
+  if (l.emp === 0) return 'Recrute un vendeur : il vend pour toi chaque seconde, même sans toucher l\'écran.';
+  if (l.lvl === 0 && S.lifetime < 100) return 'Ton vendeur travaille. Continue de vendre et vise la Recette maison (+50 %).';
+  const nl = nextLockedId(), b = nl && bizById(nl);
+  if (b && isUnlocked(S, b)) return S.money >= b.openCost ? `Tu peux ouvrir : ${b.name} !` : `${b.name} est débloqué. Mets ${fmt(b.openCost)} de côté pour l'ouvrir.`;
+  if (S.biz.limo.emp >= 5 && !S.mgr.limo.hired) return S.money >= bizById('limo').mgr ? 'Engage un gérant pour ton stand : il recrute et améliore à ta place.' : `Astuce : un gérant (${fmt(bizById('limo').mgr)}) achète à ta place, même quand tu ne touches à rien.`;
+  if (S.biz.limo.emp < 10) return 'Astuce : chaque palier de 25 employés dans un commerce multiplie ses revenus par 1,5.';
+  return null;
+}
+let lastUI = 0;
+function updateUI(force){
+  const ips = totalIps(S);
+  $('#ips').textContent = '+' + fmtRate(ips);
+  $('#lvlNum').textContent = `Niv. ${S.level}`; $('#lvlTitle').textContent = titleOf(S.level);
+  $('#lvlBar').style.width = (levelProgress(S) * 100).toFixed(1) + '%';
+  $('#lifetime').textContent = fmt(S.lifetime);
+  $('#sellSub').textContent = `+${fmt(tapValue(S))} par vente`;
+  $('#sellBtn').classList.toggle('hint', S.taps < 3 && S.biz.limo.emp === 0);
+
+  // goal
+  const d = S.goalsDone, g = GOALS[d];
+  if (!g){
+    $('#goalStep').textContent = 'Empire complet'; $('#goalPct').textContent = '100 %';
+    $('#goalTitle').textContent = 'Tu as atteint 1 milliard de dollars'; $('#goalBar').style.width = '100%';
+    $('#goalNums').textContent = fmt(S.lifetime); $('#goalReward').textContent = 'Revends ton empire pour gagner des parts et refaire le chemin plus vite.';
+  } else {
+    const prev = d > 0 ? GOALS[d - 1].at : 0, p = Math.min(1, Math.max(0, (S.lifetime - prev) / (g.at - prev)));
+    $('#goalStep').textContent = `Objectif ${d + 1} / ${GOALS.length}`; $('#goalPct').textContent = Math.floor(p * 100) + ' %';
+    $('#goalTitle').textContent = g.at >= 1e9 ? 'Atteins le milliard' : `Atteins ${fmt(g.at)} de fortune totale`;
+    $('#goalBar').style.width = (p * 100).toFixed(1) + '%';
+    $('#goalNums').textContent = `${fmt(S.lifetime)} / ${fmt(g.at)}`;
+    $('#goalReward').innerHTML = g.unlock ? `Récompense : <b>${bizById(g.unlock).name}</b> + ${Math.round(BONUS_PER_GOAL * 100)} % de revenus` : `Récompense : <b>+${Math.round(BONUS_PER_GOAL * 100)} % de revenus</b> pour toujours`;
+  }
+  const ct = coachText(), coach = $('#coach'); coach.hidden = !ct; if (ct) coach.textContent = ct;
+  $('#sceneTag').textContent = `${S.name ? `L'empire de ${S.name} · ` : ''}${openCount(S)} commerce${openCount(S) > 1 ? 's' : ''} · ${totalEmp(S)} employé${totalEmp(S) > 1 ? 's' : ''}`;
+
+  const nl = nextLockedId();
+  for (const b of BUSINESSES){
+    const s = S.biz[b.id], c = cards[b.id];
+    c.el.hidden = !(s.open || b.id === nl);
+    c.el.classList.toggle('locked', !s.open);
+    c.openBox.hidden = !s.open; c.lockBox.hidden = s.open;
+    if (s.open){
+      c.meta.textContent = `${b.tier} · niv. ${s.lvl} · ${s.emp === 0 ? 'aucun employé' : s.emp + ' ' + (s.emp > 1 ? b.emp.many : b.emp.one)}`;
+      c.ips.textContent = '+' + fmtRate(bizIps(S, b));
+      const e = empCostFor(S, b.id, mode);
+      setBuy(c.emp, b.emp.verb + (e.n > 1 ? ` ×${e.n}` : ''), `+${fmtRate(empGain(S, b.id, e.n))}`, fmt(e.cost), e.cost <= S.money);
+      const u = upgCostFor(S, b.id, mode);
+      setBuy(c.upg, `${b.upg.name} niv. ${s.lvl + u.n}`, `Revenus ×${fmtMult(upgMult(s.lvl + u.n) / upgMult(s.lvl))}${b.id === 'limo' ? ' + ventes' : ''}`, fmt(u.cost), u.cost <= S.money);
+      const next = (Math.floor(s.emp / TEAM_STEP) + 1) * TEAM_STEP;
+      c.teamTxt.textContent = `Équipe ${s.emp}/${next} → revenus ×1,5`;
+      c.teamBar.style.width = ((s.emp % TEAM_STEP) / TEAM_STEP * 100) + '%';
+      const m = S.mgr[b.id];
+      c.hire.hidden = m.hired; c.sw.hidden = !m.hired;
+      if (!m.hired){
+        c.el.querySelector('.mgr-title').textContent = 'Gérant';
+        c.mgrSub.textContent = 'Achète à ta place, avec au plus la moitié de ton argent.';
+        setBuy(c.hire, 'Engager', '', fmt(b.mgr), S.money >= b.mgr);
+      } else {
+        c.el.querySelector('.mgr-title').textContent = m.on ? 'Gérant actif' : 'Gérant en pause';
+        c.mgrSub.textContent = m.on ? (mgrReserve(S) ? `Il garde ${fmt(mgrReserve(S))} pour ton prochain commerce.` : 'Il recrute et améliore tout seul, avec la moitié de ton argent au plus.') : 'En pause : il n\'achète rien. Touche pour le relancer.';
+        c.sw.setAttribute('aria-checked', String(m.on));
+      }
+    } else {
+      c.ips.textContent = 'Fermé';
+      const un = isUnlocked(S, b);
+      c.meta.textContent = b.tier;
+      c.lockTxt.textContent = un ? `${b.name} est débloqué. Ouvre-le pour recruter tes premiers ${b.emp.many}.` : `Se débloque à ${fmt(b.unlockAt)} de fortune totale.`;
+      c.lockBar.parentElement.hidden = un;
+      c.lockBar.style.width = Math.min(100, S.lifetime / b.unlockAt * 100) + '%';
+      c.openB.hidden = !un;
+      if (un){ c.openB.children[1].textContent = fmt(b.openCost); c.openB.classList.toggle('can', S.money >= b.openCost); c.openB.setAttribute('aria-disabled', String(S.money < b.openCost)); }
+    }
+  }
+  updateGems();
+  // shares + prestige
+  const sc = $('#sharesChip'); sc.hidden = S.shares === 0;
+  if (S.shares) sc.textContent = `${S.shares} part${S.shares > 1 ? 's' : ''} · +${Math.round(S.shares * SHARE_BONUS * 100)} %`;
+  const pc = $('#prestigeCard'); pc.hidden = !(S.lifetime >= 2e5 || S.shares > 0);
+  if (!pc.hidden){
+    const gain = sharesFor(S.lifetime), nxt = nextShareAt(S.lifetime), prevAt = gain * gain * PRESTIGE_UNIT;
+    $('#prTitle').textContent = gain ? `+${gain} part${gain > 1 ? 's' : ''} d'investisseur à gagner` : "Parts d'investisseur";
+    $('#prText').innerHTML = gain
+      ? `Revends maintenant et repars de 0 $ avec <b>+${Math.round(gain * SHARE_BONUS * 100)} % de revenus pour toujours</b>.${S.shares ? ` Tu as déjà ${S.shares} part${S.shares > 1 ? 's' : ''}.` : ''}`
+      : `Atteins <b>1 M $</b> de fortune totale dans cette partie pour gagner ta première part. Chaque part donne <b>+10 % de revenus pour toujours</b>.`;
+    $('#prBar').style.width = Math.min(100, (S.lifetime - prevAt) / (nxt - prevAt) * 100) + '%';
+    $('#prNext').textContent = `Part suivante à ${fmt(nxt)} de fortune totale`;
+    const btn = $('#prBtn'); $('#prCost').textContent = gain ? `+${gain} part${gain > 1 ? 's' : ''}` : 'Pas encore';
+    btn.classList.toggle('can', gain >= 1); btn.setAttribute('aria-disabled', String(gain < 1));
+  }
+  buildPeople();
+}
+
+/* ---------- Diamonds ---------- */
+const gemBtns = {};
+function buildGemShop(){
+  const box = $('#gemRows'); box.innerHTML = '';
+  for (const g of GEM_SHOP){
+    const row = document.createElement('div'); row.className = 'gem-row';
+    row.innerHTML = `<div class="t"><b></b><span>${g.desc}</span></div><button class="buy" type="button" id="gem-${g.id}"><span class="b-lbl"></span><span class="b-sub"></span><span class="b-cost num"></span></button>`;
+    box.appendChild(row);
+    const btn = row.querySelector('button'); gemBtns[g.id] = { btn, title: row.querySelector('b') };
+    btn.addEventListener('click', () => {
+      if (!buyGem(S, g.id)){ deny(btn); return; }
+      afterBuy(btn, 1, `${g.name} niv. ${S.gemUpg[g.id]}`);
+    });
+  }
+}
+function buildShopExtras(){
+  const cl = $('#chestList'); cl.innerHTML = '';
+  for (const c of GOLD_CHESTS){
+    const d = document.createElement('div'); d.className = 'pack';
+    d.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#i-medal"/></svg><div class="amt">${c.name}</div><div class="val num" id="chv-${c.id}"></div>
+      <button class="buy" type="button" id="ch-${c.id}"><span class="b-lbl">${c.hours} h de revenus</span><span class="b-sub"></span><span class="b-cost num">${gemLabel(c.gems)}</span></button>`;
+    cl.appendChild(d);
+    const btn = d.querySelector('button');
+    btn.addEventListener('click', () => {
+      const v = buyChest(S, c.id); if (!v){ deny(btn); return; }
+      const r = btn.getBoundingClientRect(); floatText(r.left + r.width/2, r.top, '+' + fmt(v));
+      confetti(40); save(); updateUI(true);
+    });
+  }
+  const pl = $('#packList'); pl.innerHTML = '';
+  for (const p of PAID_PACKS){
+    const d = document.createElement('div'); d.className = 'pack paid';
+    d.innerHTML = `${p.tag ? `<span class="tag">${p.tag}</span>` : ''}<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#i-gem"/></svg><div class="amt num">${p.gems}</div><div class="val">diamants</div>
+      <button class="buy" type="button" aria-disabled="true"><span class="b-lbl">${p.price}</span><span class="b-sub">Bientôt</span><span class="b-cost"></span></button>`;
+    pl.appendChild(d);
+    d.querySelector('button').addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      const r = await Platform.purchase(p.id);
+      if (r === 'ok'){ grantPack(S, p.id); toast(`+${gemLabel(p.gems)} ajoutés. Merci !`); confetti(80); save(); updateUI(true); return; }
+      deny(btn); toast("Les achats ne sont pas encore ouverts. Aucun paiement n'a été fait.");
+    });
+  }
+}
+function openShop(tab){
+  $('#shop').hidden = false; Platform.gameplay(false); showTab(tab || 'boost'); updateUI(true);
+  $('#shopClose').focus({ preventScroll:true });
+}
+function closeShop(){ $('#shop').hidden = true; if (!modalOpen) Platform.gameplay(true); }
+function showTab(t){
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+  document.querySelectorAll('.shop-sec').forEach(s => s.hidden = s.dataset.panel !== t);
+  $('#shop').scrollTop = 0;
+}
+function gemLabel(n){ return `${n} diamant${n > 1 ? 's' : ''}`; }
+function updateGems(){
+  $('#gemsTxt').textContent = S.gems; $('#gemsBig').textContent = S.gems;
+  const tc = $('#turboChip'); tc.hidden = !(S.turboLeft > 0);
+  if (S.turboLeft > 0){ const m = Math.floor(S.turboLeft / 60), sec = Math.floor(S.turboLeft % 60); tc.textContent = `Turbo ×2 · ${m}:${String(sec).padStart(2,'0')}`; }
+  for (const id of ['#turboBtn', '#turboBtn2']) setBuy($(id), 'Turbo ×2', S.turboLeft > 0 ? 'Ajoute 15 min au Turbo' : 'Revenus doublés 15 min', gemLabel(TURBO.cost), S.gems >= TURBO.cost);
+  const now = Date.now(), ready = videoReady(S, now), wait = Math.ceil((GEMS.videoCooldown * 1000 - (now - S.lastVideo)) / 1000);
+  for (const id of ['#videoBtn', '#videoBtn2']) setBuy($(id), 'Regarder une vidéo', ready ? (Platform.real ? 'Vidéo courte' : 'Simulation de pub') : `Prochaine dans ${Math.floor(wait / 60)}:${String(wait % 60).padStart(2,'0')}`, `+${gemLabel(GEMS.video)}`, ready);
+  if (!$('#shop').hidden){
+    $('#shopMoney').textContent = fmt(S.money); $('#shopGems').textContent = S.gems;
+    $('#dailyState').textContent = S.lastDaily === dayKey(new Date()) ? 'Reçu aujourd\'hui' : `+${GEMS.daily}`;
+    for (const c of GOLD_CHESTS){
+      $('#chv-' + c.id).textContent = '+' + fmt(chestValue(S, c.id));
+      const b = $('#ch-' + c.id); b.classList.toggle('can', S.gems >= c.gems); b.setAttribute('aria-disabled', String(S.gems < c.gems));
+    }
+  }
+  for (const g of GEM_SHOP){
+    const lv = S.gemUpg[g.id], maxed = lv >= g.max, b = gemBtns[g.id];
+    b.title.textContent = `${g.name} · niv. ${lv}`;
+    setBuy(b.btn, maxed ? 'Maximum' : 'Améliorer', '', maxed ? '' : gemLabel(gemCost(S, g.id)), !maxed && S.gems >= gemCost(S, g.id));
+  }
+}
+/* Rewarded video: real ad on CrazyGames, clearly labelled simulation elsewhere. onReward runs only once the video is complete. */
+async function rewarded(onReward, rewardLabel){
+  if (Platform.real){
+    Platform.gameplay(false);
+    const r = await Platform.ad('rewarded');
+    if ($('#shop').hidden && !modalOpen) Platform.gameplay(true);
+    lastWall = Date.now();
+    if (r === 'ok'){ onReward(); return; }
+    if (r === 'none'){ toast('Aucune vidéo disponible pour le moment. Réessaie dans un instant.'); return; }
+    // 'disabled' (ads not enabled yet, e.g. Basic Launch): fall back to the simulation
+  }
+  simVideo(onReward, rewardLabel);
+}
+function openVideo(){
+  if (!videoReady(S, Date.now())){ deny($('#videoBtn')); return; }
+  rewarded(() => { const n = claimVideo(S, Date.now()); if (n){ toast(`+${gemLabel(n)} !`); confetti(50); save(); updateUI(true); } }, `+${gemLabel(GEMS.video)}`);
+}
+function simVideo(onReward, rewardLabel){
+  let left = 5, timer = null;
+  queue.unshift({ html: `<p class="eyebrow">Emplacement publicité</p><h2>Vidéo récompensée</h2>
+      <div class="adbox"><b>Simulation</b><p style="color:#d7ead9">Aucune vraie pub n'est diffusée ici. Sur CrazyGames, une vraie vidéo s'affichera à cet endroit.</p><div class="bar small"><i id="adBar"></i></div></div>
+      <p class="note" id="adNote">Encore ${left} s…</p>`,
+    actions: [{ label:'Patiente…', kind:'primary', fn: () => { if (left > 0) return true; onReward(); } },
+              { label:'Annuler', fn: () => { clearInterval(timer); } }],
+    onShow: () => {
+      const btn = dialog.querySelector('.act.primary'); btn.disabled = true; btn.style.opacity = .5;
+      timer = setInterval(() => {
+        left--; const bar = $('#adBar'), note = $('#adNote'); if (!bar){ clearInterval(timer); return; }
+        bar.style.width = ((5 - left) / 5 * 100) + '%';
+        note.textContent = left > 0 ? `Encore ${left} s…` : 'Vidéo terminée.';
+        if (left <= 0){ clearInterval(timer); btn.disabled = false; btn.style.opacity = 1; btn.textContent = `Récupérer ${rewardLabel}`; }
+      }, 1000);
+    } });
+  if (!modalOpen) nextModal();
+}
+function checkDaily(){ const n = claimDaily(S, new Date()); if (n){ toast(`Cadeau du jour : +${gemLabel(n)}`); save(); } }
+
+function confirmPrestige(){
+  const gain = sharesFor(S.lifetime);
+  if (gain < 1){ deny($('#prBtn')); toast(`Encore ${fmt(PRESTIGE_UNIT - S.lifetime)} avant ta première part.`); return; }
+  queue.length = 0; modalOpen = false;
+  const tot = S.shares + gain;
+  showModal({ html: `<svg class="medal" viewBox="0 0 100 100" aria-hidden="true"><use href="#i-medal"/></svg>
+      <h2>Revendre ton empire ?</h2>
+      <p class="big num">+${gain} part${gain > 1 ? 's' : ''}</p>
+      <p>Total : ${tot} part${tot > 1 ? 's' : ''}, soit <b>+${Math.round(tot * SHARE_BONUS * 100)} % de revenus</b> pour toujours.</p>
+      <p class="note">Tu repars de 0 $ : argent, commerces, employés, gérants et paliers sont remis à zéro. Tes parts, tes diamants, tes améliorations diamant et ta fortune cumulée sont gardés. Bonus : +${GEMS.prestige} diamants.</p>`,
+    actions: [{ label:'Annuler', kind:'primary' },
+              { label:`Oui, revendre (+${gain} part${gain > 1 ? 's' : ''})`, kind:'danger', fn: () => {
+                  const r = prestige(S); if (!r) return;
+                  S = r.state; dispMoney = 0; shownPeople = -1; save(); buildScene(); updateUI(true); confetti(160); Cloud.pushSoon();
+                  toast(`Empire revendu : +${r.gain} part${r.gain > 1 ? 's' : ''}. Nouveau départ, plus rapide !`);
+                  Platform.happytime();
+                  setTimeout(() => { if (Platform.real) Platform.ad('midgame').then(() => { lastWall = Date.now(); }); }, 1500);
+              } }] });
+}
+
+/* ---------- Accounts & leaderboard (Supabase) ---------- */
+/* Fill these two values with your Supabase project (Project Settings > API). The publishable/anon key is public by design: security comes from the SQL policies. */
+const CLOUD_CONFIG = { url: 'https://dkphmukksivzuonxbkdt.supabase.co', key: 'sb_publishable_NI0EldmzWv-wVuTRdRn7KQ_wOsIKcC2' };
+const SUPABASE_LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js';
+function loadScript(src){
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`) && window.supabase) return res();
+    const el = document.createElement('script'); el.src = src; el.onload = () => res(); el.onerror = () => rej(new Error('script')); document.head.appendChild(el);
+  });
+}
+function esc(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function cleanCode(x){ return String(x || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 16); }
+function frError(e){
+  if (e && e.fr) return e.fr;
+  const m = String((e && (e.message || e.error_description || e.msg)) || e || '').toLowerCase(), code = e && (e.code || e.status);
+  if (code === '23505' || m.includes('duplicate') || m.includes('players_pseudo_unique')) return 'Ce pseudo est déjà pris. Choisis-en un autre.';
+  if (m.includes('invalid login')) return 'E-mail ou mot de passe incorrect.';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'Un compte existe déjà avec cet e-mail. Connecte-toi.';
+  if (m.includes('email not confirmed')) return 'Confirme ton e-mail avec le lien reçu, puis connecte-toi.';
+  if (m.includes('password') && (m.includes('6') || m.includes('short') || m.includes('least'))) return 'Mot de passe trop court : 6 caractères minimum.';
+  if (m.includes('rate limit')) return "Trop d'essais en peu de temps. Réessaie un peu plus tard.";
+  if (m.includes('invalid') && m.includes('email')) return "Cette adresse e-mail n'est pas valide.";
+  if (m.includes('fetch') || m.includes('network') || m.includes('load failed') || m.includes('script')) return "Connexion impossible. Vérifie ton réseau. Le classement fonctionne sur ton site du jeu, pas dans l'aperçu Claude.";
+  return 'Une erreur est survenue. Réessaie dans un instant.';
+}
+const Cloud = {
+  client: null, user: null, profile: null, status: 'off', lastSync: 0, timer: null, boards: {}, busy: false, msg: '',
+  available(){ return !!(CLOUD_CONFIG.url && CLOUD_CONFIG.key) && !Platform.real; },
+  get on(){ return !!(this.user && this.profile); },
+  async init(){
+    if (!this.available()) return;
+    this.status = 'loading';
+    try {
+      await loadScript(SUPABASE_LIB);
+      this.client = window.supabase.createClient(CLOUD_CONFIG.url, CLOUD_CONFIG.key, { auth: { storageKey: 'ztb-auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+      const { data } = await this.client.auth.getSession();
+      this.user = (data && data.session && data.session.user) || null;
+      this.status = 'ready';
+      if (this.user) await this.afterLogin();
+      this.client.auth.onAuthStateChange((ev, session) => {
+        const u = (session && session.user) || null;
+        if (ev === 'SIGNED_OUT'){ this.user = null; this.profile = null; renderBoard(); updateUI(true); }
+        else if (u && (!this.user || this.user.id !== u.id)){ this.user = u; this.afterLogin(); }
+      });
+    } catch(e){ this.status = 'error'; this.msg = frError(e); }
+    renderBoard(); updateUI(true);
+  },
+  async loadProfile(){
+    const { data, error } = await this.client.from('ztb_players').select('id,pseudo,team,level,best,shares').eq('id', this.user.id).maybeSingle();
+    if (error) throw error;
+    this.profile = data || null; return this.profile;
+  },
+  async createProfile(pseudo){
+    const row = { id: this.user.id, pseudo, team: null, level: S.level, best: S.allTime, shares: S.shares };
+    const { data, error } = await this.client.from('ztb_players').insert(row).select('id,pseudo,team,level,best,shares').single();
+    if (error) throw error;
+    this.profile = data;
+    if (!S.name){ S.name = pseudo; S.askedName = true; save(); }
+    return data;
+  },
+  async afterLogin(){
+    try {
+      await this.loadProfile();
+      if (!this.profile){
+        let pending = ''; try { pending = localStorage.getItem('ztb-pending-pseudo') || ''; } catch(e){}
+        const pseudo = cleanName(pending || S.name);
+        if (pseudo.length >= 2){
+          try { await this.createProfile(pseudo); try { localStorage.removeItem('ztb-pending-pseudo'); } catch(e){} }
+          catch(e){ this.msg = frError(e); boardTab = 'account'; }
+        } else { boardTab = 'account'; }
+      }
+      if (this.profile){ await this.reconcileSave(); this.push(); this.startTimer(); await this.loadFriends().catch(() => {}); await handleInviteLink(); }
+    } catch(e){ this.msg = frError(e); }
+    renderBoard(); updateUI(true);
+  },
+  async reconcileSave(){
+    const { data, error } = await this.client.from('ztb_saves').select('data,all_time,updated_at').eq('id', this.user.id).maybeSingle();
+    if (error || !data) return;
+    if (data.all_time > S.allTime * 1.01 + 100){
+      const cloudState = hydrate(data.data);
+      queue.length = 0; modalOpen = false;
+      showModal({ html: `<p class="eyebrow">Sauvegarde du compte</p><h2>Une partie plus avancée existe</h2>
+          <p>Sur ton compte : <b>niveau ${cloudState.level}</b>, fortune cumulée <b>${fmt(cloudState.allTime)}</b>.</p>
+          <p>Sur cet appareil : niveau ${S.level}, ${fmt(S.allTime)}.</p>`,
+        actions: [{ label:'Reprendre la partie du compte', kind:'primary', fn: () => { replaceState(cloudState); toast('Partie du compte chargée.'); } },
+                  { label:'Garder celle de cet appareil', fn: () => { this.pushSave(true); } }] });
+    }
+  },
+  async pushScore(){
+    if (!this.on) return;
+    const row = { id: this.user.id, pseudo: this.profile.pseudo, team: this.profile.team, level: S.level, best: S.allTime, shares: S.shares };
+    const { data, error } = await this.client.from('ztb_players').upsert(row, { onConflict: 'id' }).select('id,pseudo,team,level,best,shares').single();
+    if (!error && data) this.profile = data;
+  },
+  async pushSave(force){
+    if (!this.on) return;
+    const snap = JSON.parse(JSON.stringify(S));
+    const { error } = await this.client.from('ztb_saves').upsert({ id: this.user.id, data: snap, all_time: S.allTime, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (!error) this.lastSync = Date.now();
+  },
+  async push(){ try { await Promise.all([this.pushScore(), this.pushSave()]); this.boards = {}; renderBoard(true); } catch(e){} },
+  pushSoon(){ if (!this.on) return; clearTimeout(this._soon); this._soon = setTimeout(() => this.push(), 4000); },
+  startTimer(){ clearInterval(this.timer); this.timer = setInterval(() => { if (!document.hidden){ this.push(); this.loadFriends().then(() => renderBoard(!$('#board').hidden ? false : true)).catch(() => {}); } }, 60000); },
+  async signUp(pseudo, email, password){
+    pseudo = cleanName(pseudo);
+    if (pseudo.length < 2) throw { message: 'pseudo' };
+    const { data: taken } = await this.client.from('ztb_players').select('id').ilike('pseudo', pseudo.replace(/[%_\\]/g, m => '\\' + m)).limit(1);
+    if (taken && taken.length) throw { code: '23505' };
+    const { data, error } = await this.client.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+    if (error) throw error;
+    if (!data.session){ try { localStorage.setItem('ztb-pending-pseudo', pseudo); } catch(e){} return 'confirm'; }
+    this.user = data.session.user;
+    await this.createProfile(pseudo);
+    await this.pushSave(true); this.startTimer();
+    await this.loadFriends().catch(() => {}); await handleInviteLink();
+    return 'ok';
+  },
+  async signIn(email, password){
+    const { data, error } = await this.client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    this.user = data.user; await this.afterLogin(); return 'ok';
+  },
+  async signOut(){ await this.push(); clearInterval(this.timer); await this.client.auth.signOut(); this.user = null; this.profile = null; this.rel = null; },
+  async setTeam(code){
+    const { data, error } = await this.client.from('ztb_players').update({ team: code || null }).eq('id', this.user.id).select('id,pseudo,team,level,best,shares').single();
+    if (error) throw error; this.profile = data; this.boards = {};
+  },
+  async board(scope){
+    let q = this.client.from('ztb_players').select('id,pseudo,team,level,best,shares').order('best', { ascending: false }).limit(50);
+    if (scope === 'team'){ if (!this.profile || !this.profile.team) return []; q = q.eq('team', this.profile.team); }
+    const { data, error } = await q; if (error) throw error;
+    this.boards[scope] = { rows: data || [], at: Date.now() }; return data || [];
+  },
+  /* Friends: requests by pseudo, accepted by the other player. this.rel = { friends, incoming, outgoing } of player rows */
+  rel: null,
+  relOf(id){ const r = this.rel; if (!r) return null; if (r.friends.some(p => p.id === id)) return 'friend'; if (r.incoming.some(p => p.id === id)) return 'incoming'; if (r.outgoing.some(p => p.id === id)) return 'outgoing'; return null; },
+  async loadFriends(){
+    if (!this.on) return null;
+    const me = this.user.id;
+    const { data: links, error } = await this.client.from('ztb_friendships').select('requester,addressee,status');
+    if (error) throw error;
+    const ids = [...new Set((links || []).map(l => l.requester === me ? l.addressee : l.requester))];
+    let players = [];
+    if (ids.length){ const r = await this.client.from('ztb_players').select('id,pseudo,team,level,best,shares').in('id', ids); if (r.error) throw r.error; players = r.data || []; }
+    const byId = Object.fromEntries(players.map(p => [p.id, p]));
+    const rel = { friends: [], incoming: [], outgoing: [], at: Date.now() };
+    for (const l of links || []){
+      const other = byId[l.requester === me ? l.addressee : l.requester]; if (!other) continue;
+      if (l.status === 'accepted') rel.friends.push(other);
+      else if (l.addressee === me) rel.incoming.push(other);
+      else rel.outgoing.push(other);
+    }
+    const before = this.rel ? this.rel.incoming.map(p => p.id) : null;
+    this.rel = rel;
+    if (before){ const fresh = rel.incoming.filter(p => !before.includes(p.id)); if (fresh.length) toast(fresh.length === 1 ? `${fresh[0].pseudo} veut être ton ami` : `${fresh.length} nouvelles demandes d'amis`); }
+    return rel;
+  },
+  async findPlayer(pseudo){
+    const { data, error } = await this.client.from('ztb_players').select('id,pseudo,team,level,best,shares').ilike('pseudo', pseudo.replace(/[%_\\]/g, m => '\\' + m)).limit(1);
+    if (error) throw error; return (data && data[0]) || null;
+  },
+  /* returns 'sent' | 'accepted' | throws { message } in French */
+  async requestFriend(target){
+    const p = typeof target === 'string' ? await this.findPlayer(cleanName(target)) : target;
+    if (!p) throw { fr: "Aucun joueur avec ce pseudo. Vérifie l'orthographe." };
+    if (p.id === this.user.id) throw { fr: "C'est ton propre pseudo !" };
+    if (!this.rel) await this.loadFriends();
+    const st = this.relOf(p.id);
+    if (st === 'friend') throw { fr: `${p.pseudo} est déjà ton ami.` };
+    if (st === 'outgoing') throw { fr: `Demande déjà envoyée à ${p.pseudo}.` };
+    if (st === 'incoming'){ await this.acceptFriend(p.id); return 'accepted'; }
+    const { error } = await this.client.from('ztb_friendships').insert({ requester: this.user.id, addressee: p.id });
+    if (error){ if (error.code === '23505'){ await this.loadFriends(); throw { fr: 'Une demande existe déjà entre vous.' }; } if (String(error.message).includes('too many')) throw { fr: 'Trop de demandes en attente. Attends que tes amis répondent.' }; throw error; }
+    await this.loadFriends(); return 'sent';
+  },
+  async acceptFriend(id){
+    const { error } = await this.client.from('ztb_friendships').update({ status: 'accepted' }).eq('requester', id).eq('addressee', this.user.id);
+    if (error) throw error; await this.loadFriends();
+  },
+  async removeFriend(id){
+    const me = this.user.id;
+    const a = await this.client.from('ztb_friendships').delete().eq('requester', me).eq('addressee', id);
+    const b = await this.client.from('ztb_friendships').delete().eq('requester', id).eq('addressee', me);
+    if (a.error) throw a.error; if (b.error) throw b.error; await this.loadFriends();
+  },
+  friendsBoard(){
+    if (!this.rel || !this.profile) return null;
+    const me = Object.assign({}, this.profile);
+    return [me, ...this.rel.friends];
+  },
+  async myRank(){
+    if (!this.on) return null;
+    const { count, error } = await this.client.from('ztb_players').select('id', { count: 'exact', head: true }).gt('best', Math.max(this.profile.best, S.allTime));
+    return error ? null : (count || 0) + 1;
+  },
+};
+window.Cloud = Cloud;
+function replaceState(n){ S = n; dispMoney = S.money; shownPeople = -1; save(); buildScene(); updateUI(true); }
+
+/* Invite link: <site>?ami=Pseudo — after sign-in, a friend request is sent to that player */
+function inviteParam(){ try { return cleanName(new URLSearchParams(location.search).get('ami') || ''); } catch(e){ return ''; } }
+let pendingInvite = inviteParam();
+try { if (pendingInvite) localStorage.setItem('ztb-invite', pendingInvite); else pendingInvite = localStorage.getItem('ztb-invite') || ''; } catch(e){}
+function clearInvite(){
+  pendingInvite = '';
+  try { localStorage.removeItem('ztb-invite'); } catch(e){}
+  try { if (location.search.includes('ami=')) history.replaceState(null, '', location.pathname + location.hash); } catch(e){}
+}
+async function handleInviteLink(){
+  if (!pendingInvite || !Cloud.on) return;
+  const who = pendingInvite;
+  if (Cloud.profile.pseudo.toLowerCase() === who.toLowerCase()){ clearInvite(); return; }
+  try {
+    const r = await Cloud.requestFriend(who);
+    toast(r === 'accepted' ? `Toi et ${who} êtes maintenant amis !` : `Demande d'ami envoyée à ${who}.`); confetti(50);
+  } catch(e){ const m = frError(e); if (!/déjà/.test(m)) toast(m); }
+  clearInvite(); boardTab = 'friends'; renderBoard();
+}
+function inviteLink(){ return `${location.origin}${location.pathname}?ami=${encodeURIComponent(Cloud.profile ? Cloud.profile.pseudo : '')}`; }
+function copyFriendInvite(){
+  if (!Cloud.on) return;
+  const link = inviteLink();
+  const txt = `Viens me battre sur ZERO TO BILLION ! Ouvre ce lien, crée ton compte, et on sera amis automatiquement pour comparer nos fortunes : ${link}`;
+  try { navigator.clipboard.writeText(txt).then(() => toast('Invitation copiée : colle-la dans un message.'), () => showLink(link)); }
+  catch(e){ showLink(link); }
+}
+function showLink(link){
+  queue.length = 0; modalOpen = false;
+  showModal({ html: `<h2>Ton lien d'invitation</h2><p>Copie ce lien et envoie-le à tes amis :</p><p class="code" style="font-size:15px;word-break:break-all;font-family:var(--body);font-weight:900">${esc(link)}</p>`, actions: [{ label:'Fermer', kind:'primary' }] });
+}
+function incomingCount(){ return Cloud.rel ? Cloud.rel.incoming.length : 0; }
+
+let boardTab = 'friends', authMode = 'signup';
+function rankRows(rows, withAdd){
+  if (!rows.length) return '';
+  const meId = Cloud.user && Cloud.user.id;
+  rows = rows.map(r => r.id === meId ? Object.assign({}, r, { best: Math.max(r.best, S.allTime), level: Math.max(r.level, S.level) }) : r).sort((a, b) => b.best - a.best);
+  return rows.map((r, i) => {
+    let act = '';
+    if (withAdd && Cloud.on && r.id !== meId){
+      const st = Cloud.relOf(r.id);
+      act = st === 'friend' ? `<span class="mini-btn done">Ami</span>`
+        : st === 'outgoing' ? `<span class="mini-btn done">Demandé</span>`
+        : st === 'incoming' ? `<button class="mini-btn" type="button" data-accept="${esc(r.id)}">Accepter</button>`
+        : `<button class="mini-btn" type="button" data-add="${esc(r.id)}" data-name="${esc(r.pseudo)}">+ Ami</button>`;
+    }
+    return `<div class="rank${withAdd && Cloud.on ? ' act' : ''}${Cloud.user && r.id === Cloud.user.id ? ' me' : ''}${i === 0 ? ' top1' : ''}">
+      <span class="pos num">${i + 1}</span>
+      <span class="who"><b>${esc(r.pseudo)}</b><span>Niv. ${r.level} · ${esc(titleOf(r.level))}</span></span>
+      <span class="amt num">${fmt(r.best)}</span>${withAdd && Cloud.on ? (act || '<span></span>') : ''}</div>`;
+  }).join('');
+}
+function friendsView(){
+  const rel = Cloud.rel;
+  if (!rel) return `<div class="card"><div class="empty">Chargement de tes amis…</div></div>`;
+  const inc = rel.incoming.length ? `<div class="card"><h3>Demandes reçues <span class="badge">${rel.incoming.length}</span></h3><div class="req-list">${rel.incoming.map(p => `
+      <div class="req"><span class="who"><b>${esc(p.pseudo)}</b><span>Niv. ${p.level} · ${fmt(p.best)}</span></span>
+      <button class="mini-btn" type="button" data-accept="${esc(p.id)}">Accepter</button><button class="mini-btn ghost-b" type="button" data-decline="${esc(p.id)}">Refuser</button></div>`).join('')}</div></div>` : '';
+  const board = Cloud.friendsBoard();
+  const list = rel.friends.length
+    ? `<div class="rank-list">${rankRows(board)}</div>`
+    : `<div class="empty">Pas encore d'amis. Envoie une demande avec leur pseudo, ou partage ton lien d'invitation.</div>`;
+  const out = rel.outgoing.length ? `<div class="card"><h3>Demandes envoyées</h3><div class="req-list">${rel.outgoing.map(p => `
+      <div class="req" style="border-color:var(--cream-2)"><span class="who"><b>${esc(p.pseudo)}</b><span>En attente de réponse</span></span><span></span>
+      <button class="mini-btn ghost-b" type="button" data-cancel="${esc(p.id)}">Annuler</button></div>`).join('')}</div></div>` : '';
+  const manage = rel.friends.length ? `<details style="margin-top:10px"><summary class="gem-note" style="cursor:pointer">Gérer mes amis</summary><div class="req-list" style="margin-top:8px">${rel.friends.map(p => `
+      <div class="req" style="border-color:var(--cream-2)"><span class="who"><b>${esc(p.pseudo)}</b><span>Niv. ${p.level}</span></span><span></span>
+      <button class="mini-btn ghost-b" type="button" data-unfriend="${esc(p.id)}" data-name="${esc(p.pseudo)}">Retirer</button></div>`).join('')}</div></details>` : '';
+  return `${inc}
+    <div class="card"><h3>Classement entre amis</h3>${list}
+      <div class="row-btns"><button class="small-btn" type="button" id="refreshBoard">Actualiser</button><button class="small-btn primary" type="button" id="copyFriendInvite">Inviter un ami</button></div>${manage}</div>
+    <div class="card"><h3>Ajouter un ami</h3>
+      <form class="form add-row" id="addForm" novalidate>
+        <label style="min-width:0">Pseudo de ton ami<input class="name-input" id="fFriend" type="text" maxlength="16" autocomplete="off" autocapitalize="words" placeholder="ex. Léa"></label>
+        <button class="small-btn primary" type="submit">Envoyer</button>
+      </form>
+      <p class="form-msg" id="addMsg" role="status"></p>
+      <p class="gem-note" style="margin-top:4px">Ton pseudo : <b>${esc(Cloud.profile.pseudo)}</b>. Tes amis peuvent aussi t'ajouter depuis le classement Monde.</p></div>
+    ${out}`;
+}
+function bindFriends(){
+  const body = $('#boardBody');
+  const run = async (btn, fn, okMsg) => { if (btn) btn.disabled = true; try { await fn(); if (okMsg) toast(okMsg); } catch(e){ toast(frError(e)); } renderBoard(); updateUI(true); };
+  body.querySelectorAll('[data-accept]').forEach(b => b.addEventListener('click', () => { const p = (Cloud.rel.incoming.find(x => x.id === b.dataset.accept) || {}).pseudo; run(b, () => Cloud.acceptFriend(b.dataset.accept), `Toi et ${p || 'ton ami'} êtes maintenant amis !`).then(() => confetti(50)); }));
+  body.querySelectorAll('[data-decline]').forEach(b => b.addEventListener('click', () => run(b, () => Cloud.removeFriend(b.dataset.decline), 'Demande refusée.')));
+  body.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', () => run(b, () => Cloud.removeFriend(b.dataset.cancel), 'Demande annulée.')));
+  body.querySelectorAll('[data-unfriend]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Confirmer'; b.classList.remove('ghost-b'); return; }
+    run(b, () => Cloud.removeFriend(b.dataset.unfriend), `${b.dataset.name} retiré de tes amis.`);
+  }));
+  body.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => run(b, async () => {
+    const r = await Cloud.requestFriend(Cloud.boards.world.rows.find(x => x.id === b.dataset.add) || b.dataset.name);
+    toast(r === 'accepted' ? `Toi et ${b.dataset.name} êtes maintenant amis !` : `Demande envoyée à ${b.dataset.name}.`);
+  })));
+  const f = $('#addForm');
+  if (f) f.addEventListener('submit', async e => {
+    e.preventDefault(); const m = $('#addMsg'), v = cleanName($('#fFriend').value);
+    if (v.length < 2){ m.className = 'form-msg err'; m.textContent = 'Entre le pseudo de ton ami (2 caractères minimum).'; return; }
+    m.className = 'form-msg'; m.textContent = 'Un instant…';
+    try { const r = await Cloud.requestFriend(v); m.className = 'form-msg ok'; m.textContent = r === 'accepted' ? `Toi et ${v} êtes maintenant amis !` : `Demande envoyée à ${v}. Elle apparaîtra dans son jeu.`; if (r === 'accepted') confetti(50);
+      setTimeout(() => { renderBoard(); }, 1400); }
+    catch(err){ m.className = 'form-msg err'; m.textContent = frError(err); }
+  });
+  if ($('#copyFriendInvite')) $('#copyFriendInvite').addEventListener('click', copyFriendInvite);
+  if ($('#refreshBoard')) $('#refreshBoard').addEventListener('click', async () => { await Cloud.pushScore().catch(() => {}); await Cloud.loadFriends().catch(() => {}); renderBoard(); });
+}
+function authForm(){
+  const su = authMode === 'signup';
+  return `<div class="card">
+    <div class="seg wide" role="group" aria-label="Compte">
+      <button type="button" data-auth="signup" aria-pressed="${su}">Créer un compte</button>
+      <button type="button" data-auth="signin" aria-pressed="${!su}">Se connecter</button>
+    </div>
+    <form class="form" id="authForm" novalidate>
+      ${su ? `<label>Pseudo (visible dans le classement)<input class="name-input" id="fPseudo" type="text" maxlength="16" autocomplete="nickname" autocapitalize="words" value="${esc(S.name)}"></label>` : ''}
+      <label>E-mail<input class="name-input" id="fEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="off"></label>
+      <label>Mot de passe<input class="name-input" id="fPass" type="password" minlength="6" autocomplete="${su ? 'new-password' : 'current-password'}"></label>
+      <p class="form-msg" id="fMsg" role="status"></p>
+      <button class="shop-open" type="submit" id="fSubmit">${su ? 'Créer mon compte' : 'Me connecter'}</button>
+      <p class="gem-note">${su ? "Ton e-mail sert uniquement à te connecter et n'est montré à personne. Ton pseudo, ton niveau et ta fortune apparaissent dans le classement. Ta partie est sauvegardée sur ton compte : tu la retrouves sur un autre téléphone." : 'Ta partie sauvegardée sur ton compte sera proposée si elle est plus avancée que celle de cet appareil.'}</p>
+    </form></div>`;
+}
+function teamBlock(){
+  const t = Cloud.profile && Cloud.profile.team;
+  if (t) return `<div class="card"><h3>Ton groupe</h3><p class="code" id="teamCode">${esc(t)}</p>
+      <button class="small-btn" type="button" data-open-team style="width:100%;margin-top:6px">Voir le classement du groupe</button>
+      <p class="gem-note" style="margin-top:4px">Donne ce code à tes potes : ils le saisissent dans « Rejoindre un groupe » après avoir créé leur compte.</p>
+      <div class="row-btns"><button class="small-btn primary" type="button" id="copyInvite">Copier l'invitation</button><button class="small-btn" type="button" id="leaveTeam">Quitter le groupe</button></div></div>`;
+  return `<div class="card"><h3>Groupe (facultatif)</h3>
+      <p class="gem-note" style="margin-top:0">Pour un classement à plusieurs sans s'ajouter un par un : crée un groupe et partage son code.</p>
+      <form class="form" id="teamForm" novalidate style="margin-top:10px">
+        <label>Code du groupe<input class="name-input" id="fTeam" type="text" maxlength="16" autocapitalize="characters" autocomplete="off" placeholder="ex. POTES-4821"></label>
+        <p class="form-msg" id="tMsg" role="status"></p>
+        <div class="row-btns" style="margin-top:0"><button class="small-btn primary" type="submit">Rejoindre</button><button class="small-btn" type="button" id="newTeam">Créer un groupe</button></div>
+      </form></div>`;
+}
+function renderBoard(cardOnly){
+  // main-screen card
+  const card = $('#boardCard'); card.hidden = !Cloud.available();
+  if (!card.hidden){
+    const intro = $('#boardIntro'), mini = $('#boardMini'), btns = $('#boardBtns'), rk = $('#boardRank');
+    if (Cloud.status === 'error' || Cloud.status === 'off'){ intro.textContent = Cloud.msg || 'Classement indisponible pour le moment.'; mini.innerHTML = ''; btns.innerHTML = ''; rk.textContent = ''; }
+    else if (!Cloud.on){
+      intro.textContent = 'Crée ton compte pour comparer ton niveau et ta fortune avec tes potes, et retrouver ta partie sur un autre téléphone.';
+      mini.innerHTML = ''; rk.textContent = '';
+      btns.innerHTML = `<button class="small-btn primary" type="button" data-open="signup">Créer un compte</button><button class="small-btn" type="button" data-open="signin">Se connecter</button>`;
+    } else {
+      const n = incomingCount(), fb = Cloud.friendsBoard(), hasFriends = Cloud.rel && Cloud.rel.friends.length;
+      rk.innerHTML = n ? `<span class="badge">${n}</span>` : '';
+      if (hasFriends){
+        intro.innerHTML = n ? `<b>${n} demande${n > 1 ? 's' : ''} d'ami en attente.</b>` : `${Cloud.rel.friends.length} ami${Cloud.rel.friends.length > 1 ? 's' : ''} dans ton classement.`;
+        mini.innerHTML = rankRows(fb.map(r => r.id === Cloud.user.id ? Object.assign({}, r, { best: Math.max(r.best, S.allTime) }) : r).sort((x, y) => y.best - x.best).slice(0, 3));
+      } else {
+        intro.innerHTML = n ? `<b>${n} demande${n > 1 ? 's' : ''} d'ami en attente.</b> Accepte-la pour comparer vos fortunes.` : 'Ajoute tes amis avec leur pseudo ou envoie-leur ton lien d\'invitation pour voir qui est le plus fort.';
+        mini.innerHTML = '';
+      }
+      btns.innerHTML = `<button class="small-btn primary" type="button" data-open="friends">${n ? 'Voir les demandes' : hasFriends ? 'Voir le classement' : 'Ajouter des amis'}</button><button class="small-btn" type="button" data-open="world">Classement mondial</button>`;
+    }
+  }
+  // sheet
+  if (cardOnly || $('#board').hidden) return;
+  $('#boardMe').textContent = `Niv. ${S.level} · ${fmt(S.allTime)}`;
+  $('#boardUser').textContent = Cloud.on ? Cloud.profile.pseudo : 'Pas connecté';
+  document.querySelectorAll('[data-btab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.btab === boardTab)));
+  const ft = $('#friendsTab'); if (ft) ft.innerHTML = 'Amis' + (incomingCount() ? `<span class="badge">${incomingCount()}</span>` : '');
+  const body = $('#boardBody');
+  if (!Cloud.available()){ body.innerHTML = `<div class="empty">Le classement n'est pas disponible sur cette version du jeu.</div>`; return; }
+  if (Cloud.status !== 'ready'){ body.innerHTML = `<div class="empty">${esc(Cloud.status === 'loading' ? 'Connexion…' : (Cloud.msg || 'Classement indisponible.'))}</div>`; return; }
+  if (boardTab === 'account' || !Cloud.on){
+    if (!Cloud.user){ body.innerHTML = authForm(); bindAuth(); return; }
+    if (!Cloud.profile){
+      body.innerHTML = `<div class="card"><h3>Choisis ton pseudo</h3><form class="form" id="pseudoForm" novalidate>
+          <label>Pseudo<input class="name-input" id="fPseudo2" type="text" maxlength="16" value="${esc(S.name)}"></label>
+          <p class="form-msg err" id="pMsg">${esc(Cloud.msg)}</p><button class="shop-open" type="submit">Valider</button></form></div>`;
+      $('#pseudoForm').addEventListener('submit', async e => { e.preventDefault(); const v = cleanName($('#fPseudo2').value);
+        if (v.length < 2){ $('#pMsg').textContent = '2 caractères minimum.'; return; }
+        try { await Cloud.createProfile(v); Cloud.msg = ''; await Cloud.reconcileSave(); Cloud.push(); Cloud.startTimer(); await Cloud.loadFriends().catch(() => {}); await handleInviteLink(); boardTab = 'friends'; renderBoard(); updateUI(true); toast(`Compte prêt, ${v} !`); }
+        catch(err){ $('#pMsg').textContent = frError(err); } });
+      return;
+    }
+    if (boardTab !== 'account'){ boardTab = 'account'; }
+    const ago = Cloud.lastSync ? Math.max(0, Math.round((Date.now() - Cloud.lastSync) / 60000)) : null;
+    body.innerHTML = `<div class="card"><h3>${esc(Cloud.profile.pseudo)}</h3>
+        <p class="gem-note" style="margin-top:0">${esc(Cloud.user.email || '')}</p>
+        <p style="margin:8px 0 0">Partie sauvegardée sur ton compte ${ago === null ? '…' : ago === 0 ? "à l'instant" : `il y a ${ago} min`}.</p>
+        <div class="row-btns"><button class="small-btn primary" type="button" id="syncNow">Sauvegarder maintenant</button><button class="small-btn" type="button" id="logout">Se déconnecter</button></div></div>
+      ${teamBlock()}`;
+    $('#syncNow').addEventListener('click', async () => { await Cloud.push(); toast('Partie sauvegardée sur ton compte.'); renderBoard(); });
+    $('#logout').addEventListener('click', async () => { await Cloud.signOut(); toast('Déconnecté. Ta partie reste sur cet appareil.'); renderBoard(); updateUI(true); });
+    bindTeam(); return;
+  }
+  if (boardTab === 'friends'){
+    body.innerHTML = friendsView(); bindFriends();
+    if (!Cloud.rel || Date.now() - Cloud.rel.at > 30000) Cloud.loadFriends().then(() => { if (boardTab === 'friends' && !$('#board').hidden) renderBoard(); }).catch(err => toast(frError(err)));
+    return;
+  }
+  if (boardTab === 'team' && !Cloud.profile.team){ body.innerHTML = teamBlock(); bindTeam(); return; }
+  const b = Cloud.boards[boardTab];
+  body.innerHTML = `<div class="card"><h3>${boardTab === 'team' ? `Groupe ${esc(Cloud.profile.team)}` : 'Top 50 mondial'}</h3>
+      <p class="gem-note" style="margin-top:0" id="myRankLine"></p>
+      <div class="rank-list">${b ? (rankRows(b.rows, boardTab === 'world') || '<div class="empty">Personne pour le moment.</div>') : '<div class="empty">Chargement…</div>'}</div>
+      <div class="row-btns"><button class="small-btn" type="button" id="refreshBoard">Actualiser</button>${boardTab === 'team' ? `<button class="small-btn primary" type="button" id="copyInvite">Inviter un pote</button>` : ''}</div></div>`;
+  $('#refreshBoard').addEventListener('click', async () => { await Cloud.pushScore(); await Cloud.board(boardTab).catch(() => {}); renderBoard(); });
+  if ($('#copyInvite')) $('#copyInvite').addEventListener('click', copyInvite);
+  if (boardTab === 'world') bindFriends();
+  const tabAtCall = boardTab;
+  if (!b || Date.now() - b.at > 30000) Cloud.board(boardTab).then(() => { if (boardTab === tabAtCall && !$('#board').hidden) renderBoard(); }).catch(err => { body.querySelector('.rank-list').innerHTML = `<div class="empty">${esc(frError(err))}</div>`; });
+  if (boardTab === 'world') Cloud.myRank().then(r => { const l = $('#myRankLine'); if (l && r) l.textContent = `Ta place dans le monde : ${r}e`; });
+}
+function bindAuth(){
+  document.querySelectorAll('[data-auth]').forEach(b => b.addEventListener('click', () => { authMode = b.dataset.auth; renderBoard(); }));
+  $('#authForm').addEventListener('submit', async e => {
+    e.preventDefault(); if (Cloud.busy) return;
+    const msg = $('#fMsg'), email = $('#fEmail').value.trim(), pass = $('#fPass').value;
+    msg.className = 'form-msg';
+    if (authMode === 'signup' && cleanName($('#fPseudo').value).length < 2){ msg.className = 'form-msg err'; msg.textContent = 'Choisis un pseudo de 2 caractères minimum.'; return; }
+    if (!/^\S+@\S+\.\S+$/.test(email)){ msg.className = 'form-msg err'; msg.textContent = "Cette adresse e-mail n'est pas valide."; return; }
+    if (pass.length < 6){ msg.className = 'form-msg err'; msg.textContent = 'Mot de passe trop court : 6 caractères minimum.'; return; }
+    Cloud.busy = true; $('#fSubmit').disabled = true; msg.textContent = 'Un instant…';
+    try {
+      const r = authMode === 'signup' ? await Cloud.signUp($('#fPseudo').value, email, pass) : await Cloud.signIn(email, pass);
+      if (r === 'confirm'){ msg.className = 'form-msg ok'; msg.textContent = 'Compte créé ! Ouvre le lien reçu par e-mail pour le confirmer, puis connecte-toi ici.'; authMode = 'signin'; }
+      else { boardTab = 'friends'; confetti(60); toast(Cloud.on ? `Connecté : ${Cloud.profile.pseudo}` : 'Connecté.'); renderBoard(); updateUI(true); }
+    } catch(err){ msg.className = 'form-msg err'; msg.textContent = frError(err); }
+    Cloud.busy = false; const b = $('#fSubmit'); if (b) b.disabled = false;
+  });
+}
+function bindTeam(){
+  document.querySelectorAll('[data-open-team]').forEach(b => b.addEventListener('click', () => { boardTab = 'team'; renderBoard(); }));
+  if ($('#copyInvite')) $('#copyInvite').addEventListener('click', copyInvite);
+  if ($('#leaveTeam')) $('#leaveTeam').addEventListener('click', async () => { try { await Cloud.setTeam(null); toast('Tu as quitté le groupe.'); } catch(e){ toast(frError(e)); } renderBoard(); });
+  const f = $('#teamForm'); if (!f) return;
+  const join = async code => {
+    const m = $('#tMsg'); code = cleanCode(code);
+    if (code.length < 3){ m.className = 'form-msg err'; m.textContent = 'Le code fait au moins 3 caractères (lettres, chiffres, tirets).'; return; }
+    try { await Cloud.setTeam(code); boardTab = 'team'; toast(`Bienvenue dans le groupe ${code} !`); confetti(50); renderBoard(); updateUI(true); }
+    catch(e){ m.className = 'form-msg err'; m.textContent = frError(e); }
+  };
+  f.addEventListener('submit', e => { e.preventDefault(); join($('#fTeam').value); });
+  $('#newTeam').addEventListener('click', () => {
+    const base = cleanCode((Cloud.profile.pseudo || 'POTES').normalize('NFD').replace(/[̀-ͯ]/g, '')).replace(/-/g, '').slice(0, 10) || 'POTES';
+    join(`${base.length >= 3 ? base : 'POTES'}-${Math.floor(1000 + Math.random() * 9000)}`);
+  });
+}
+function copyInvite(){
+  const t = Cloud.profile && Cloud.profile.team; if (!t) return;
+  const txt = `Viens me battre sur ZERO TO BILLION ! Crée ton compte dans le jeu (Classement > Mon compte), puis rejoins mon groupe avec le code ${t} : ${location.origin}${location.pathname}`;
+  try { navigator.clipboard.writeText(txt).then(() => toast('Invitation copiée : colle-la dans un message.'), () => toast(`Code du groupe : ${t}`)); }
+  catch(e){ toast(`Code du groupe : ${t}`); }
+}
+function openBoard(tab){
+  if (!Cloud.available()){ toast("Le classement n'est pas disponible sur cette version du jeu."); return; }
+  boardTab = tab || (Cloud.on ? 'friends' : 'account');
+  if (!Cloud.on && (tab === 'signup' || tab === 'signin')){ authMode = tab; boardTab = 'account'; }
+  $('#board').hidden = false; Platform.gameplay(false); renderBoard();
+}
+function closeBoard(){ $('#board').hidden = true; if (!modalOpen) Platform.gameplay(true); renderBoard(); }
+
+/* ---------- Input ---------- */
+const sell = $('#sellBtn');
+function sellAt(x, y){
+  const v = doTapCore(S);
+  floatText(x, y, '+' + fmt(v));
+  const m = $('#money'); m.classList.remove('bump'); void m.offsetWidth; m.classList.add('bump');
+  if (S.taps === 1) updateUI(true);
+}
+sell.addEventListener('pointerdown', e => { e.preventDefault(); sell.classList.add('press'); sellAt(e.clientX, e.clientY - 20); });
+['pointerup','pointercancel','pointerleave'].forEach(t => sell.addEventListener(t, () => sell.classList.remove('press')));
+sell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); const r = sell.getBoundingClientRect(); sellAt(r.left + r.width/2, r.top); } });
+sell.addEventListener('contextmenu', e => e.preventDefault());
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.mode === 'max' ? 'max' : Number(b.dataset.mode);
+  document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  updateUI(true);
+}));
+$('#menuBtn').addEventListener('click', openMenu);
+$('#shareBtn').addEventListener('click', openShare);
+$('#resetBtn').addEventListener('click', confirmReset);
+$('#prBtn').addEventListener('click', confirmPrestige);
+$('#videoBtn').addEventListener('click', openVideo);
+$('#videoBtn2').addEventListener('click', openVideo);
+const onTurbo = e => { if (!buyTurbo(S)){ deny(e.currentTarget); return; } confetti(40); afterBuy(e.currentTarget, 1, 'Turbo !'); };
+$('#turboBtn').addEventListener('click', onTurbo); $('#turboBtn2').addEventListener('click', onTurbo);
+$('#gemsChip').addEventListener('click', () => openShop('gems'));
+$('#shopOpen').addEventListener('click', () => openShop('boost'));
+$('#shopClose').addEventListener('click', closeShop);
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { showTab(b.dataset.tab); updateUI(true); }));
+addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#shop').hidden && !modalOpen) closeShop(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#board').hidden && !modalOpen) closeBoard(); });
+$('#boardClose').addEventListener('click', closeBoard);
+$('#lvlBtn').addEventListener('click', () => Cloud.available() ? openBoard() : openMenu());
+document.querySelectorAll('[data-btab]').forEach(b => b.addEventListener('click', () => { boardTab = b.dataset.btab; renderBoard(); }));
+$('#boardBtns').addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) openBoard(b.dataset.open); });
+modal.addEventListener('click', e => { if (e.target === modal && queue.length === 0) closeAll(); });
+
+/* ---------- Loop ---------- */
+let lastWall = Date.now(), coinAcc = 0, saveAcc = 0, mgrAcc = 0;
+function frame(){
+  if (Platform.adPlaying){ lastWall = Date.now(); requestAnimationFrame(frame); return; }
+  const now = Date.now(); let dt = (now - lastWall) / 1000; lastWall = now;
+  if (dt < 0) dt = 0;
+  if (dt > 5){
+    const r = offline(S, dt);
+    if (dt > 60 && r.gain > 0) awayModal(r);
+  } else tick(S, dt);
+
+  dispMoney += (S.money - dispMoney) * Math.min(1, dt * 12);
+  if (Math.abs(S.money - dispMoney) < 0.05) dispMoney = S.money;
+  $('#money').textContent = fmt(dispMoney);
+
+  const hit = checkGoals(S);
+  if (hit.length){ hit.forEach(onGoal); buildScene(); save(); updateUI(true); Cloud.pushSoon(); }
+  const ups = checkLevels(S); if (ups.length) onLevels(ups);
+
+  mgrAcc += dt;
+  if (mgrAcc > 0.5){ mgrAcc = 0; const done = runManagers(S);
+    for (const id in done){ const el = cards[id].el; el.classList.remove('working'); void el.offsetWidth; el.classList.add('working'); }
+    if (Object.keys(done).length) updateUI(true); }
+
+  if (now - lastUI > 120){ lastUI = now; updateUI(); }
+  coinAcc += dt; if (coinAcc > 1.3){ coinAcc = 0; spawnCoins(); }
+  saveAcc += dt; if (saveAcc > 5){ saveAcc = 0; save(); }
+  requestAnimationFrame(frame);
+}
+function awayModal(r){
+  const mins = Math.round(r.seconds / 60), h = Math.floor(mins / 60), m = mins % 60;
+  const dur = h ? `${h} h ${String(m).padStart(2,'0')}` : `${mins} min`;
+  showModal({ html: `<svg class="medal" viewBox="0 0 100 100" aria-hidden="true"><use href="#i-medal"/></svg><p class="eyebrow">${withName('Bon retour {n}', 'Bon retour')}</p>
+    <h2>Ton équipe a travaillé</h2><p class="big num">+${fmt(r.gain)}</p><p>gagnés pendant ton absence (${dur}${r.capped ? `, maximum ${offlineCap(S) / 3600} h` : ''}).</p>
+    <p class="note">Sans toi, ton équipe tourne à ${Math.round(OFFLINE_RATE * 100)} %. Regarde une vidéo pour récupérer 100 %.</p>`,
+    actions: [{ label:`Doubler avec une vidéo (+${fmt(r.gain)})`, kind:'primary', fn: () => {
+                  let done = false;
+                  rewarded(() => {
+                    if (done) return; done = true;
+                    earn(S, r.gain); toast(`Gains doublés : +${fmt(r.gain)}`); confetti(90); save(); updateUI(true);
+                  }, `+${fmt(r.gain)}`);
+                } },
+              { label:'Récupérer' }],
+    onShow: () => confetti(60) });
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden){ save(); if (Cloud.on) Cloud.pushSave(); } });
+addEventListener('pagehide', save);
+
+/* ---------- Boot ---------- */
+buildCards(); buildGemShop(); buildShopExtras(); buildScene();
+renderBoard(); Cloud.init();
+/* Paid packs stay hidden on CrazyGames until in-game purchases are enabled there (Platform.payments) */
+$('#paidCard').hidden = Platform.real && !Platform.payments;
+if (!fresh && S.lastSave){ const away = (Date.now() - S.lastSave) / 1000; if (away > 5){ const r = offline(S, away); dispMoney = S.money; if (away > 60 && r.gain > 0) awayModal(r); } }
+if (!S.askedName) askName(true);
+const early = checkGoals(S); early.forEach(onGoal);
+{ const ups = checkLevels(S); if (ups.length) setTimeout(() => onLevels(ups), 1500); }
+$('#saveLine').textContent = saveText();
+updateUI(true);
+setTimeout(checkDaily, 1200);
+setInterval(() => { if (Cloud.on && !document.hidden){ Cloud.boards = {}; renderBoard(true); } }, 120000);
+setInterval(checkDaily, 60000);
+if (!storeOK) setTimeout(() => toast('Sauvegarde indisponible ici : garde la page ouverte.'), 800);
+lastWall = Date.now();
+Platform.loadingStop();
+Platform.ready = true;
+Platform.gameplay(!modalOpen);
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
