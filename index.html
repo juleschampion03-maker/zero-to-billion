@@ -239,6 +239,8 @@ main .inner{display:grid;gap:14px}
 .req .who b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .req .who span{font-size:12px;color:var(--muted)}
 .req-list{display:grid;gap:8px}
+.shield{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:12px;font-weight:900;color:var(--forest)}
+.shield svg{width:16px;height:16px;flex:none}
 .badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--coral);color:var(--paper);font:900 12px/1 var(--body);margin-left:6px;vertical-align:1px}
 .add-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
 .add-row .name-input{margin-top:6px}
@@ -467,6 +469,7 @@ main .inner{display:grid;gap:14px}
     </section>
     <section class="card board-card" id="boardCard" hidden>
       <div class="gem-head"><h2>Classement entre amis</h2><span class="eyebrow" id="boardRank"></span></div>
+      <p class="shield"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" fill="currentColor"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="#FFF6E3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Classement protégé : chaque score est vérifié par le serveur.</p>
       <p id="boardIntro"></p>
       <div class="rank-list" id="boardMini"></div>
       <div class="board-actions" id="boardBtns"></div>
@@ -634,7 +637,7 @@ function newState(){
   const biz = {};
   const mgr = {};
   for (const b of BUSINESSES){ biz[b.id] = { open: b.unlockAt === 0, emp: 0, lvl: 0 }; mgr[b.id] = { hired:false, on:true }; }
-  return { v:3, money:0, lifetime:0, allTime:0, taps:0, goalsDone:0, bestGoals:0, shares:0, prestiges:0, biz, mgr, gems:0, gemsEarned:0, gemUpg:{ speed:0, tap:0, offline:0 }, turboLeft:0, lastVideo:0, lastDaily:'', name:'', askedName:false, level:1, startedAt:Date.now(), lastSave:0 };
+  return { v:3, money:0, lifetime:0, allTime:0, taps:0, goalsDone:0, bestGoals:0, shares:0, prestiges:0, biz, mgr, gems:0, gemsEarned:0, gemUpg:{ speed:0, tap:0, offline:0 }, turboLeft:0, lastVideo:0, lastDaily:'', name:'', askedName:false, level:1, sanctionAck:'', startedAt:Date.now(), lastSave:0 };
 }
 function num(x, d){ x = Number(x); return (isFinite(x) && x >= 0) ? x : (d || 0); }
 function hydrate(o){
@@ -648,6 +651,7 @@ function hydrate(o){
   for (const g of GEM_SHOP) s.gemUpg[g.id] = Math.min(g.max, Math.floor(num(o.gemUpg && o.gemUpg[g.id])));
   s.turboLeft = Math.min(TURBO.seconds * 10, num(o.turboLeft)); s.lastVideo = num(o.lastVideo); s.lastDaily = typeof o.lastDaily === 'string' ? o.lastDaily : '';
   s.name = cleanName(o.name); s.askedName = !!o.askedName || !!s.name;
+  s.sanctionAck = typeof o.sanctionAck === 'string' ? o.sanctionAck.slice(0, 40) : '';
   s.level = Number.isFinite(Number(o.level)) && Number(o.level) >= 1 ? Math.min(Math.floor(o.level), levelOf(Math.max(num(o.allTime), num(o.lifetime)))) : levelOf(Math.max(num(o.allTime), num(o.lifetime)));
   s.allTime = Math.max(num(o.allTime), s.lifetime); s.bestGoals = Math.max(s.goalsDone, Math.min(GOALS.length, Math.floor(num(o.bestGoals))));
   if (!(num(o.v) >= 3)){   // goal list changed in v3: recount from the fortune actually earned
@@ -751,6 +755,28 @@ function runManagers(st){
   return done;
 }
 /* Prestige: sell the empire for investor shares, +SHARE_BONUS each, forever */
+/* A normal empire worth `target` $: played by a simple honest bot (taps, cheapest useful buys, managers). Used after a sanction. */
+function normalState(target){
+  const s = newState(), ids = BUSINESSES.map(b => b.id);
+  for (let t = 0; t < 40000 && s.lifetime < target; t++){
+    for (let k = 0; k < 4; k++) doTapCore(s);
+    tick(s, 1);
+    if (t % 5 === 0){
+      for (const id of ids) openBiz(s, id);
+      for (const b of BUSINESSES) if (s.biz[b.id].open && !s.mgr[b.id].hired && s.money >= b.mgr * 2) hireMgr(s, b.id);
+      for (let g = 0; g < 50; g++){
+        let best = null;
+        for (const id of ids){ if (!s.biz[id].open) continue;
+          const e = empCostFor(s, id, 1).cost, u = upgCostFor(s, id, 1).cost;
+          if (!best || e < best.c) best = { id, k:'e', c:e }; if (u < best.c) best = { id, k:'u', c:u }; }
+        if (!best || best.c > s.money) break; (best.k === 'e' ? buyEmp : buyUpg)(s, best.id, 1);
+      }
+    }
+  }
+  s.allTime = s.lifetime; checkGoals(s); checkLevels(s);
+  s.gems = 10; s.gemsEarned = 10; s.turboLeft = 0;
+  return s;
+}
 function sharesFor(lifetime){ return Math.floor(Math.sqrt(Math.max(0, lifetime) / PRESTIGE_UNIT)); }
 function nextShareAt(lifetime){ return Math.pow(sharesFor(lifetime) + 1, 2) * PRESTIGE_UNIT; }
 function prestige(st){
@@ -759,7 +785,7 @@ function prestige(st){
   const n = newState();
   n.shares = st.shares + gain; n.prestiges = st.prestiges + 1; n.allTime = st.allTime;
   n.bestGoals = st.bestGoals; n.taps = st.taps; n.startedAt = st.startedAt;
-  n.gems = st.gems; n.gemsEarned = st.gemsEarned; n.gemUpg = Object.assign({}, st.gemUpg); n.lastVideo = st.lastVideo; n.lastDaily = st.lastDaily; n.name = st.name; n.askedName = st.askedName; n.level = st.level;
+  n.gems = st.gems; n.gemsEarned = st.gemsEarned; n.gemUpg = Object.assign({}, st.gemUpg); n.lastVideo = st.lastVideo; n.lastDaily = st.lastDaily; n.name = st.name; n.askedName = st.askedName; n.level = st.level; n.sanctionAck = st.sanctionAck;
   addGems(n, GEMS.prestige);
   return { state: n, gain };
 }
@@ -1453,17 +1479,17 @@ const Cloud = {
     renderBoard(); updateUI(true);
   },
   async loadProfile(){
-    const { data, error } = await this.client.from('ztb_players').select('id,pseudo,team,level,best,shares').eq('id', this.user.id).maybeSingle();
+    const { data, error } = await this.client.from('ztb_players').select('id,pseudo,team,level,best,shares,sanctioned_at,sanction_target,sanction_count').eq('id', this.user.id).maybeSingle();
     if (error) throw error;
     this.profile = data || null; return this.profile;
   },
   async createProfile(pseudo){
-    const row = { id: this.user.id, pseudo, team: null, level: S.level, best: S.allTime, shares: S.shares };
-    const { data, error } = await this.client.from('ztb_players').insert(row).select('id,pseudo,team,level,best,shares').single();
+    const { data, error } = await this.client.from('ztb_players').insert({ id: this.user.id, pseudo, team: null }).select('id,pseudo,team,level,best,shares,sanctioned_at,sanction_target,sanction_count').single();
     if (error) throw error;
     this.profile = data;
     if (!S.name){ S.name = pseudo; S.askedName = true; save(); }
-    return data;
+    await this.pushScore();
+    return this.profile;
   },
   async afterLogin(){
     try {
@@ -1476,13 +1502,19 @@ const Cloud = {
           catch(e){ this.msg = frError(e); boardTab = 'account'; }
         } else { boardTab = 'account'; }
       }
-      if (this.profile){ await this.reconcileSave(); this.push(); this.startTimer(); await this.loadFriends().catch(() => {}); await handleInviteLink(); }
+      if (this.profile){
+        if (this.sanctionPending()) await this.applySanction();
+        else await this.reconcileSave();
+        this.push(); this.startTimer(); await this.loadFriends().catch(() => {}); await handleInviteLink();
+      }
     } catch(e){ this.msg = frError(e); }
     renderBoard(); updateUI(true);
   },
   async reconcileSave(){
     const { data, error } = await this.client.from('ztb_saves').select('data,all_time,updated_at').eq('id', this.user.id).maybeSingle();
     if (error || !data) return;
+    // never offer a cloud save far beyond the score the server has verified
+    if (this.profile && data.all_time > Math.max(this.profile.best * 2, 1e6)) return;
     if (data.all_time > S.allTime * 1.01 + 100){
       const cloudState = hydrate(data.data);
       queue.length = 0; modalOpen = false;
@@ -1493,11 +1525,36 @@ const Cloud = {
                   { label:'Garder celle de cet appareil', fn: () => { this.pushSave(true); } }] });
     }
   },
+  /* The server checks every score (server clock, fastest honest pace x10). An impossible score triggers a sanction. */
   async pushScore(){
     if (!this.on) return;
-    const row = { id: this.user.id, pseudo: this.profile.pseudo, team: this.profile.team, level: S.level, best: S.allTime, shares: S.shares };
-    const { data, error } = await this.client.from('ztb_players').upsert(row, { onConflict: 'id' }).select('id,pseudo,team,level,best,shares').single();
-    if (!error && data) this.profile = data;
+    const { data, error } = await this.client.rpc('ztb_report_score', { p_best: S.allTime, p_shares: S.shares, p_ack: S.sanctionAck || null });
+    if (error || !data) return;
+    const row = Array.isArray(data) ? data[0] : data; if (!row) return;
+    this.profile = Object.assign({}, this.profile, row);
+    if (this.sanctionPending()) await this.applySanction();
+  },
+  sanctionPending(){
+    const p = this.profile; if (!p || !p.sanctioned_at) return false;
+    return !S.sanctionAck || new Date(S.sanctionAck) < new Date(p.sanctioned_at);
+  },
+  async applySanction(){
+    if (this._sanctioning) return; this._sanctioning = true;
+    try {
+      const p = this.profile, target = Math.max(1e5, Number(p.sanction_target) || 5e6);
+      const keep = { name: S.name, askedName: S.askedName, lastDaily: S.lastDaily, lastVideo: S.lastVideo, startedAt: S.startedAt };
+      const n = Object.assign(normalState(target), keep);
+      n.sanctionAck = p.sanctioned_at;
+      replaceState(n);
+      await this.pushSave(true);
+      await this.client.rpc('ztb_report_score', { p_best: S.allTime, p_shares: 0, p_ack: S.sanctionAck }).then(r => { const row = r.data && (Array.isArray(r.data) ? r.data[0] : r.data); if (row) this.profile = Object.assign({}, this.profile, row); });
+      queue.length = 0; modalOpen = false;
+      showModal({ html: `<p class="eyebrow">Anti-triche</p><h2>Vous avez été démasqué !</h2>
+          <p>Ta progression était impossible en jouant normalement : ton score a été vérifié par le serveur.</p>
+          <p>Ton empire repart à un niveau normal : <b>${fmt(S.allTime)}</b>, niveau <b>${S.level}</b>. Tes commerces et ton équipe sont conservés à ce niveau.</p>
+          <p class="note">Le classement est protégé : chaque score est contrôlé avec l'heure du serveur. Modifier sa sauvegarde ou l'heure du téléphone ne sert plus à rien.</p>`,
+        actions: [{ label:"J'ai compris", kind:'primary' }] });
+    } finally { this._sanctioning = false; }
   },
   async pushSave(force){
     if (!this.on) return;
@@ -1505,7 +1562,7 @@ const Cloud = {
     const { error } = await this.client.from('ztb_saves').upsert({ id: this.user.id, data: snap, all_time: S.allTime, updated_at: new Date().toISOString() }, { onConflict: 'id' });
     if (!error) this.lastSync = Date.now();
   },
-  async push(){ try { await Promise.all([this.pushScore(), this.pushSave()]); this.boards = {}; renderBoard(true); } catch(e){} },
+  async push(){ try { await this.pushScore(); await this.pushSave(); this.boards = {}; renderBoard(true); } catch(e){} },
   pushSoon(){ if (!this.on) return; clearTimeout(this._soon); this._soon = setTimeout(() => this.push(), 4000); },
   startTimer(){ clearInterval(this.timer); this.timer = setInterval(() => { if (!document.hidden){ this.push(); this.loadFriends().then(() => renderBoard(!$('#board').hidden ? false : true)).catch(() => {}); } }, 60000); },
   async signUp(pseudo, email, password){
@@ -1683,7 +1740,7 @@ function friendsView(){
       <div class="req" style="border-color:var(--cream-2)"><span class="who"><b>${esc(p.pseudo)}</b><span>Niv. ${p.level}</span></span><span></span>
       <button class="mini-btn ghost-b" type="button" data-unfriend="${esc(p.id)}" data-name="${esc(p.pseudo)}">Retirer</button></div>`).join('')}</div></details>` : '';
   return `${inc}
-    <div class="card"><h3>Classement entre amis</h3>${list}
+    <div class="card"><h3>Classement entre amis</h3><p class="shield"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" fill="currentColor"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="#FFF6E3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Classement protégé : triche impossible, chaque score est vérifié par le serveur.</p>${list}
       <div class="row-btns"><button class="small-btn" type="button" id="refreshBoard">Actualiser</button><button class="small-btn primary" type="button" id="copyFriendInvite">Inviter un ami</button></div>${manage}</div>
     <div class="card"><h3>Ajouter un ami</h3>
       <form class="form add-row" id="addForm" novalidate>
@@ -1812,7 +1869,7 @@ function renderBoard(cardOnly){
   }
   if (boardTab === 'team' && !Cloud.profile.team){ body.innerHTML = teamBlock(); bindTeam(); return; }
   const b = Cloud.boards[boardTab];
-  body.innerHTML = `<div class="card"><h3>${boardTab === 'team' ? `Groupe ${esc(Cloud.profile.team)}` : 'Top 50 mondial'}</h3>
+  body.innerHTML = `<div class="card"><h3>${boardTab === 'team' ? `Groupe ${esc(Cloud.profile.team)}` : 'Top 50 mondial'}</h3><p class="shield"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" fill="currentColor"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="#FFF6E3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Classement protégé : triche impossible, chaque score est vérifié par le serveur.</p>
       <p class="gem-note" style="margin-top:0" id="myRankLine"></p>
       <div class="rank-list">${b ? (rankRows(b.rows, boardTab === 'world') || '<div class="empty">Personne pour le moment.</div>') : '<div class="empty">Chargement…</div>'}</div>
       <div class="row-btns"><button class="small-btn" type="button" id="refreshBoard">Actualiser</button>${boardTab === 'team' ? `<button class="small-btn primary" type="button" id="copyInvite">Inviter un pote</button>` : ''}</div></div>`;
