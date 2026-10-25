@@ -1422,7 +1422,7 @@ function frError(e){
   const m = String((e && (e.message || e.error_description || e.msg)) || e || '').toLowerCase(), code = e && (e.code || e.status);
   if (code === '23505' || m.includes('duplicate') || m.includes('players_pseudo_unique')) return 'Ce pseudo est déjà pris. Choisis-en un autre.';
   if (m.includes('invalid login')) return 'E-mail ou mot de passe incorrect.';
-  if (m.includes('already registered') || m.includes('already been registered')) return 'Un compte existe déjà avec cet e-mail. Connecte-toi.';
+  if (m.includes('already registered') || m.includes('already been registered')) return "Cet e-mail a déjà un compte (peut-être celui de Fruit Party). Connecte-toi avec le même mot de passe.";
   if (m.includes('email not confirmed')) return 'Confirme ton e-mail avec le lien reçu, puis connecte-toi.';
   if (m.includes('password') && (m.includes('6') || m.includes('short') || m.includes('least'))) return 'Mot de passe trop court : 6 caractères minimum.';
   if (m.includes('rate limit')) return "Trop d'essais en peu de temps. Réessaie un peu plus tard.";
@@ -1515,7 +1515,12 @@ const Cloud = {
     if (taken && taken.length) throw { code: '23505' };
     const { data, error } = await this.client.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
     if (error) throw error;
-    if (!data.session){ try { localStorage.setItem('ztb-pending-pseudo', pseudo); } catch(e){} return 'confirm'; }
+    if (!data.session){
+      try { localStorage.setItem('ztb-pending-pseudo', pseudo); } catch(e){}
+      // Supabase hides existing e-mails: no session + no identities means this address already has an account (for example from Fruit Party)
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw { exists: true, fr: "Cet e-mail a déjà un compte (peut-être celui de Fruit Party). Connecte-toi avec le même mot de passe." };
+      return 'confirm';
+    }
     this.user = data.session.user;
     await this.createProfile(pseudo);
     await this.pushSave(true); this.startTimer();
@@ -1828,7 +1833,10 @@ function bindAuth(){
       const r = authMode === 'signup' ? await Cloud.signUp($('#fPseudo').value, email, pass) : await Cloud.signIn(email, pass);
       if (r === 'confirm'){ msg.className = 'form-msg ok'; msg.textContent = 'Compte créé ! Ouvre le lien reçu par e-mail pour le confirmer, puis connecte-toi ici.'; authMode = 'signin'; }
       else { boardTab = 'friends'; confetti(60); toast(Cloud.on ? `Connecté : ${Cloud.profile.pseudo}` : 'Connecté.'); renderBoard(); updateUI(true); }
-    } catch(err){ msg.className = 'form-msg err'; msg.textContent = frError(err); }
+    } catch(err){
+      if (err && err.exists){ Cloud.busy = false; authMode = 'signin'; renderBoard(); const em = $('#fEmail'); if (em) em.value = email; const m2 = $('#fMsg'); if (m2){ m2.className = 'form-msg err'; m2.textContent = frError(err); } const pw = $('#fPass'); if (pw) pw.focus(); return; }
+      msg.className = 'form-msg err'; msg.textContent = frError(err);
+    }
     Cloud.busy = false; const b = $('#fSubmit'); if (b) b.disabled = false;
   });
 }
