@@ -1426,7 +1426,7 @@ function frError(e){
   if (m.includes('email not confirmed')) return 'Confirme ton e-mail avec le lien reçu, puis connecte-toi.';
   if (m.includes('password') && (m.includes('6') || m.includes('short') || m.includes('least'))) return 'Mot de passe trop court : 6 caractères minimum.';
   if (m.includes('rate limit')) return "Trop d'essais en peu de temps. Réessaie un peu plus tard.";
-  if (m.includes('invalid') && m.includes('email')) return "Cette adresse e-mail n'est pas valide.";
+  if (m.includes('invalid') && m.includes('email')) return "Le serveur refuse cette adresse e-mail. Vérifie qu'elle est bien écrite.";
   if (m.includes('fetch') || m.includes('network') || m.includes('load failed') || m.includes('script')) return "Connexion impossible. Vérifie ton réseau. Le classement fonctionne sur ton site du jeu, pas dans l'aperçu Claude.";
   return 'Une erreur est survenue. Réessaie dans un instant.';
 }
@@ -1643,6 +1643,10 @@ function showLink(link){
 function incomingCount(){ return Cloud.rel ? Cloud.rel.incoming.length : 0; }
 
 let boardTab = 'friends', authMode = 'signup';
+const authDraft = { email: '', pseudo: '' };
+/* Clean an e-mail typed on a phone: drop spaces and invisible characters, lower-case */
+function cleanEmail(x){ return String(x || '').replace(/[\s\u00a0\u200b-\u200d\u2060\ufeff]/g, '').replace(/[\u2018\u2019]/g, "'").toLowerCase(); }
+function emailOk(e){ return /^[^@]+@[^@]+\.[^@.]{2,}$/.test(e); }
 function rankRows(rows, withAdd){
   if (!rows.length) return '';
   const meId = Cloud.user && Cloud.user.id;
@@ -1724,8 +1728,8 @@ function authForm(){
       <button type="button" data-auth="signin" aria-pressed="${!su}">Se connecter</button>
     </div>
     <form class="form" id="authForm" novalidate>
-      ${su ? `<label>Pseudo (visible dans le classement)<input class="name-input" id="fPseudo" type="text" maxlength="16" autocomplete="nickname" autocapitalize="words" value="${esc(S.name)}"></label>` : ''}
-      <label>E-mail<input class="name-input" id="fEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="off"></label>
+      ${su ? `<label>Pseudo (visible dans le classement)<input class="name-input" id="fPseudo" type="text" maxlength="16" autocomplete="nickname" autocapitalize="words" value="${esc(authDraft.pseudo || S.name)}"></label>` : ''}
+      <label>E-mail<input class="name-input" id="fEmail" type="text" inputmode="email" autocomplete="${su ? 'email' : 'username'}" autocapitalize="off" autocorrect="off" spellcheck="false" value="${esc(authDraft.email)}"></label>
       <label>Mot de passe<input class="name-input" id="fPass" type="password" minlength="6" autocomplete="${su ? 'new-password' : 'current-password'}"></label>
       <p class="form-msg" id="fMsg" role="status"></p>
       <button class="shop-open" type="submit" id="fSubmit">${su ? 'Créer mon compte' : 'Me connecter'}</button>
@@ -1820,13 +1824,17 @@ function renderBoard(cardOnly){
   if (boardTab === 'world') Cloud.myRank().then(r => { const l = $('#myRankLine'); if (l && r) l.textContent = `Ta place dans le monde : ${r}e`; });
 }
 function bindAuth(){
-  document.querySelectorAll('[data-auth]').forEach(b => b.addEventListener('click', () => { authMode = b.dataset.auth; renderBoard(); }));
+  const keep = () => { const e = $('#fEmail'), p = $('#fPseudo'); if (e) authDraft.email = e.value; if (p) authDraft.pseudo = p.value; };
+  ['#fEmail', '#fPseudo'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', keep); });
+  document.querySelectorAll('[data-auth]').forEach(b => b.addEventListener('click', () => { keep(); authMode = b.dataset.auth; renderBoard(); }));
   $('#authForm').addEventListener('submit', async e => {
     e.preventDefault(); if (Cloud.busy) return;
-    const msg = $('#fMsg'), email = $('#fEmail').value.trim(), pass = $('#fPass').value;
+    const msg = $('#fMsg'), raw = $('#fEmail').value, email = cleanEmail(raw), pass = $('#fPass').value;
+    authDraft.email = email; $('#fEmail').value = email;
     msg.className = 'form-msg';
     if (authMode === 'signup' && cleanName($('#fPseudo').value).length < 2){ msg.className = 'form-msg err'; msg.textContent = 'Choisis un pseudo de 2 caractères minimum.'; return; }
-    if (!/^\S+@\S+\.\S+$/.test(email)){ msg.className = 'form-msg err'; msg.textContent = "Cette adresse e-mail n'est pas valide."; return; }
+    if (!email){ msg.className = 'form-msg err'; msg.textContent = 'Entre ton adresse e-mail.'; $('#fEmail').focus(); return; }
+    if (!emailOk(email)){ msg.className = 'form-msg err'; msg.textContent = `« ${email} » n'est pas une adresse e-mail complète (exemple : prenom@gmail.com).`; $('#fEmail').focus(); return; }
     if (pass.length < 6){ msg.className = 'form-msg err'; msg.textContent = 'Mot de passe trop court : 6 caractères minimum.'; return; }
     Cloud.busy = true; $('#fSubmit').disabled = true; msg.textContent = 'Un instant…';
     try {
